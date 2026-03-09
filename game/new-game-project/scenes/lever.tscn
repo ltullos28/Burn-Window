@@ -1,0 +1,68 @@
+[gd_scene format=3 uid="uid://csjpa7svl0ilc"]
+
+[ext_resource type="Material" uid="uid://cldk181rerslk" path="res://scenes/buttonbody.tres" id="1_8di2w"]
+[ext_resource type="Script" uid="uid://dj7s2l2xnqbr5" path="res://button_control.gd" id="1_efr3d"]
+[ext_resource type="Material" uid="uid://dh1hxv0knaof3" path="res://scenes/metal.tres" id="2_dkrws"]
+[ext_resource type="Material" uid="uid://buat0fl56igp5" path="res://scenes/buttonplus.tres" id="3_efr3d"]
+[ext_resource type="Material" uid="uid://b3fc3uy5hphav" path="res://scenes/buttonminus.tres" id="4_3flmr"]
+[ext_resource type="Script" uid="uid://cosmci5uh6ns2" path="res://button_glow.gd" id="5_efr3d"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_igrgq"]
+size = Vector3(1, 0.1, 0.4)
+
+[sub_resource type="TorusMesh" id="TorusMesh_jxk16"]
+inner_radius = 0.1
+outer_radius = 0.15
+
+[sub_resource type="SphereMesh" id="SphereMesh_t5pcx"]
+radius = 0.1
+height = 0.2
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_8di2w"]
+radius = 0.15
+
+[node name="Lever" type="Node3D" unique_id=1134752273]
+script = ExtResource("1_efr3d")
+
+[node name="BaseMesh" type="MeshInstance3D" parent="." unique_id=2044623806]
+material_override = ExtResource("1_8di2w")
+mesh = SubResource("BoxMesh_igrgq")
+
+[node name="ButtonPlus" type="MeshInstance3D" parent="BaseMesh" unique_id=426171954]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 0.052, 0)
+material_override = ExtResource("2_dkrws")
+mesh = SubResource("TorusMesh_jxk16")
+
+[node name="GreenButton" type="MeshInstance3D" parent="BaseMesh/ButtonPlus" unique_id=1574656833]
+material_override = ExtResource("3_efr3d")
+mesh = SubResource("SphereMesh_t5pcx")
+
+[node name="PlusInteract" type="Area3D" parent="BaseMesh/ButtonPlus/GreenButton" unique_id=314905493]
+collision_layer = 2
+collision_mask = 2
+script = ExtResource("5_efr3d")
+lever_path = NodePath("../../../..")
+button_mesh_path = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BaseMesh/ButtonPlus/GreenButton/PlusInteract" unique_id=1310651332]
+shape = SubResource("SphereShape3D_8di2w")
+
+[node name="ButtonMinus" type="MeshInstance3D" parent="BaseMesh" unique_id=2127016387]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 0.052, 0)
+material_override = ExtResource("2_dkrws")
+mesh = SubResource("TorusMesh_jxk16")
+
+[node name="RedButton" type="MeshInstance3D" parent="BaseMesh/ButtonMinus" unique_id=751139414]
+material_override = ExtResource("4_3flmr")
+mesh = SubResource("SphereMesh_t5pcx")
+
+[node name="MinusInteract" type="Area3D" parent="BaseMesh/ButtonMinus/RedButton" unique_id=1686558501]
+collision_layer = 2
+collision_mask = 2
+script = ExtResource("5_efr3d")
+lever_path = NodePath("../../../..")
+mode = 1
+button_mesh_path = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BaseMesh/ButtonMinus/RedButton/MinusInteract" unique_id=1265371414]
+shape = SubResource("SphereShape3D_8di2w")
