@@ -7,6 +7,7 @@ extends Node3D
 @export var retrograde_path: NodePath
 @export var radial_in_path: NodePath
 @export var radial_out_path: NodePath
+@export var nose_path: NodePath
 
 @export var marker_radius: float = 0.55
 @export var min_speed_to_show: float = 0.05
@@ -19,6 +20,7 @@ var prograde_marker: Node3D
 var retrograde_marker: Node3D
 var radial_in_marker: Node3D
 var radial_out_marker: Node3D
+var nose_marker: Node3D
 
 func _ready() -> void:
 	ship = get_node_or_null(ship_path) as Node3D
@@ -28,16 +30,19 @@ func _ready() -> void:
 	retrograde_marker = get_node_or_null(retrograde_path) as Node3D
 	radial_in_marker = get_node_or_null(radial_in_path) as Node3D
 	radial_out_marker = get_node_or_null(radial_out_path) as Node3D
+	nose_marker = get_node_or_null(nose_path) as Node3D
+
 
 func _process(_delta: float) -> void:
 	if ship == null or ball == null:
 		return
 
-	# Counter-rotate the ball against the ship's render orientation
+	# Counter-rotate the navball against ship orientation
 	ball.quaternion = ship.global_transform.basis.get_rotation_quaternion().inverse()
 
 	update_prograde_and_retrograde()
 	update_radial_markers()
+	update_nose_marker()
 
 
 func update_prograde_and_retrograde() -> void:
@@ -86,6 +91,20 @@ func update_radial_markers() -> void:
 	place_marker(radial_out_marker, -radial_in_local)
 
 
+func update_nose_marker() -> void:
+	if nose_marker == null or ship == null:
+		return
+
+	nose_marker.visible = true
+
+	# Ship forward direction
+	var world_dir: Vector3 = ship.global_transform.basis.z.normalized()
+
+	var local_dir: Vector3 = (ball.global_transform.basis.inverse() * world_dir).normalized()
+
+	place_marker(nose_marker, local_dir)
+
+
 func place_marker(marker: Node3D, local_dir: Vector3) -> void:
 	var inward: Vector3 = -local_dir.normalized()
 
@@ -103,6 +122,5 @@ func orient_marker_inward(marker: Node3D, local_dir: Vector3) -> void:
 	var right: Vector3 = up.cross(inward).normalized()
 	var corrected_up: Vector3 = inward.cross(right).normalized()
 
-	# Matches your current marker orientation convention
 	var marker_basis: Basis = Basis(right, -inward, corrected_up)
 	marker.transform.basis = marker_basis

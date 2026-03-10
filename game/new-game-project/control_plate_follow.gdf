@@ -1,0 +1,96 @@
+extends Node3D
+
+@export var player_path: NodePath
+@export var navball_path: NodePath
+
+@export var orbit_radius: float = 1.91
+@export var fixed_height: float = 0.256
+@export var fixed_x_rotation_deg: float = 68.8
+
+# Smooth only the angular motion around the rail
+@export var theta_smoothing: float = 8.0
+
+# If the player gets too close to the navball center, freeze the target angle
+# so the panel does not whip across to the other side.
+@export var inner_lock_radius: float = 2.15
+
+var player: Node3D
+var navball: Node3D
+
+var current_theta: float = 0.0
+var target_theta: float = 0.0
+var initialized: bool = false
+
+func _ready() -> void:
+	player = get_node_or_null(player_path) as Node3D
+	navball = get_node_or_null(navball_path) as Node3D
+
+	if player == null or navball == null:
+		return
+
+	var parent_node := get_parent() as Node3D
+	if parent_node == null:
+		return
+
+	# Work entirely in the parent's local frame so the panel stays consistent
+	# with the cockpit/ship, but does not inherit the navball sphere's own spin.
+	var player_local: Vector3 = parent_node.to_local(player.global_position)
+	var navball_local: Vector3 = navball.position
+
+	var to_player: Vector3 = player_local - navball_local
+	to_player.y = 0.0
+
+	if to_player.length_squared() < 0.0001:
+		to_player = Vector3.RIGHT
+
+	target_theta = atan2(to_player.x, to_player.z)
+	current_theta = target_theta
+	initialized = true
+
+	_apply_from_theta(current_theta)
+
+func _physics_process(delta: float) -> void:
+	if not initialized or player == null or navball == null:
+		return
+
+	var parent_node := get_parent() as Node3D
+	if parent_node == null:
+		return
+
+	var player_local: Vector3 = parent_node.to_local(player.global_position)
+	var navball_local: Vector3 = navball.position
+
+	var to_player: Vector3 = player_local - navball_local
+	to_player.y = 0.0
+
+	var flat_dist: float = to_player.length()
+
+	# Only update the target angle if the player is outside the lock radius
+	if flat_dist > inner_lock_radius and to_player.length_squared() > 0.0001:
+		target_theta = atan2(to_player.x, to_player.z)
+
+	var t: float = clampf(theta_smoothing * delta, 0.0, 1.0)
+	current_theta = lerp_angle(current_theta, target_theta, t)
+
+	_apply_from_theta(current_theta)
+
+func _apply_from_theta(theta: float) -> void:
+	if navball == null:
+		return
+
+	var navball_local: Vector3 = navball.position
+
+	# Rail position in the parent local frame
+	var offset: Vector3 = Vector3(
+		sin(theta) * orbit_radius,
+		0.0,
+		cos(theta) * orbit_radius
+	)
+
+	position = navball_local + offset
+	position.y = fixed_height
+
+	# Local rotation is hard-locked to the same polar angle
+	rotation.x = deg_to_rad(fixed_x_rotation_deg)
+	rotation.y = theta + PI
+	rotation.z = 0.0

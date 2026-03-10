@@ -5,7 +5,6 @@ extends CharacterBody3D
 @export var gravity: float = 20.0
 @export var ship_path: NodePath
 
-var flight_mode: bool = false
 var ship: Node3D
 var held_interactable: Object = null
 
@@ -20,11 +19,7 @@ func _ready() -> void:
 		interact_ray.add_exception(self)
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("toggle_mode"):
-		flight_mode = !flight_mode
-
 	if event is InputEventMouseMotion:
-		# Mouse only controls the player's view now, not the ship.
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		camera.rotate_x(-event.relative.y * mouse_sensitivity)
 		camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-85), deg_to_rad(85))
@@ -34,11 +29,7 @@ func _input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
 	handle_interaction()
-
-	if flight_mode:
-		handle_flight_mode(delta)
-	else:
-		handle_walk_mode(delta)
+	handle_walk_mode(delta)
 
 func handle_walk_mode(delta: float) -> void:
 	var input_dir: Vector2 = Vector2.ZERO
@@ -61,7 +52,7 @@ func handle_walk_mode(delta: float) -> void:
 	var forward: Vector3 = -camera.global_transform.basis.z
 	var right: Vector3 = camera.global_transform.basis.x
 
-	# Project movement onto the plane of the ship floor.
+	# Project movement onto the plane of the ship floor
 	forward = forward - ship_up * forward.dot(ship_up)
 	right = right - ship_up * right.dot(ship_up)
 
@@ -72,29 +63,18 @@ func handle_walk_mode(delta: float) -> void:
 
 	var move_dir: Vector3 = (right * input_dir.x) + (forward * input_dir.y)
 
-	# Keep velocity aligned to ship-local axes rather than world Y assumptions.
+	# Keep velocity aligned to ship-local axes rather than world Y assumptions
 	var vertical_speed: float = velocity.dot(ship_up)
 	var horizontal_velocity: Vector3 = move_dir * walk_speed
 
 	velocity = horizontal_velocity + ship_up * vertical_speed
 
-	# Artificial gravity toward the ship floor.
+	# Artificial gravity toward the ship floor
 	var gravity_dir: Vector3 = -ship_up
 	velocity += gravity_dir * gravity * delta
 
-	# Tell CharacterBody what "up" means.
+	# Tell CharacterBody what "up" means
 	up_direction = ship_up
-
-	move_and_slide()
-
-func handle_flight_mode(_delta: float) -> void:
-	# Freeze walking while in flight mode.
-	velocity = Vector3.ZERO
-
-	if ship != null:
-		up_direction = ship.global_transform.basis.y.normalized()
-	else:
-		up_direction = Vector3.UP
 
 	move_and_slide()
 
