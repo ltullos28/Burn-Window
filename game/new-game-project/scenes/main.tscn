@@ -14,7 +14,12 @@
 [ext_resource type="Material" uid="uid://dh1hxv0knaof3" path="res://scenes/metal.tres" id="11_ya4ey"]
 [ext_resource type="Texture2D" uid="uid://bgro3ku8qbr35" path="res://crosshair065.png" id="12_eb6dy"]
 [ext_resource type="Script" uid="uid://cakxcepp6bpf4" path="res://scenes/trajectory_info_label.gd" id="14_jkv2x"]
+[ext_resource type="AudioStream" uid="uid://bttamu8iwvvkx" path="res://scenes/freesound_community-beepbeepbeep-53921.mp3" id="15_jbj1t"]
 [ext_resource type="Script" uid="uid://7tgqtatvicea" path="res://scenes/trajectory_display.gd" id="16_jbj1t"]
+[ext_resource type="Script" uid="uid://racebaa8t5lo" path="res://trajectory_refresh_sound.gd" id="16_muem4"]
+[ext_resource type="Script" uid="uid://dnt5njq8bjdwg" path="res://engine_audio.gd" id="18_gqmmt"]
+[ext_resource type="AudioStream" uid="uid://b01omr80sc68k" path="res://scenes/freesound_community-large-rocket-engine-86240.mp3" id="19_yc10j"]
+[ext_resource type="AudioStream" uid="uid://ck5tk6bm4vwo8" path="res://scenes/freesound_community-rattelingmetalshelves-76404.mp3" id="20_jscy8"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jyhfs"]
 albedo_color = Color(0.8823829, 0.82665706, 0.76737565, 1)
@@ -176,6 +181,7 @@ target_path = NodePath("../Ship")
 
 [node name="Ship" type="Node3D" parent="." unique_id=37130247]
 script = ExtResource("2_sugp2")
+engine_audio_path = NodePath("../EngineAudioController3D")
 
 [node name="Floor" type="MeshInstance3D" parent="Ship" unique_id=147530356]
 material_override = SubResource("StandardMaterial3D_o5qli")
@@ -343,10 +349,24 @@ ship_path = NodePath("../..")
 [node name="PlusInteract" parent="Ship/LeverPad/PitchLever/BaseMesh/ButtonPlus/GreenButton" parent_id_path=PackedInt32Array(1134752273, 1574656833) index="0" unique_id=314905493]
 collision_layer = 1
 collision_mask = 1
+script = ExtResource("10_choun")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
 
 [node name="MinusInteract" parent="Ship/LeverPad/PitchLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(1134752273, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
 collision_mask = 1
+script = ExtResource("10_choun")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
 
 [node name="Label" type="Label3D" parent="Ship/LeverPad/PitchLever" unique_id=627392537]
 transform = Transform3D(3.9402128e-08, 0.99555916, -0.09414324, 3.9209986e-09, 0.09414327, 0.99555886, 0.99999976, -3.959625e-08, -1.9413982e-10, -0.684628, -0.014260411, 2.9802322e-07)
@@ -361,10 +381,24 @@ ship_path = NodePath("../..")
 [node name="PlusInteract" parent="Ship/LeverPad/YawLever/BaseMesh/ButtonPlus/GreenButton" parent_id_path=PackedInt32Array(1546800821, 1574656833) index="0" unique_id=314905493]
 collision_layer = 1
 collision_mask = 1
+script = ExtResource("10_choun")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
 
 [node name="MinusInteract" parent="Ship/LeverPad/YawLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(1546800821, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
 collision_mask = 1
+script = ExtResource("10_choun")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
 
 [node name="Label2" type="Label3D" parent="Ship/LeverPad/YawLever" unique_id=532953614]
 transform = Transform3D(3.940213e-08, 0.9955592, -0.09414327, 3.921004e-09, 0.0941433, 0.99555904, 0.9999999, -3.959625e-08, -1.9413404e-10, -0.684628, -0.01426065, -0.00210327)
@@ -379,10 +413,25 @@ ship_path = NodePath("../..")
 [node name="PlusInteract" parent="Ship/LeverPad/RollLever/BaseMesh/ButtonPlus/GreenButton" parent_id_path=PackedInt32Array(419383447, 1574656833) index="0" unique_id=314905493]
 collision_layer = 1
 collision_mask = 1
+script = ExtResource("10_choun")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
 
 [node name="MinusInteract" parent="Ship/LeverPad/RollLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(419383447, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
 collision_mask = 1
+script = ExtResource("10_choun")
+action_type = 0
+mode = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
 
 [node name="Label3" type="Label3D" parent="Ship/LeverPad/RollLever" unique_id=2102518387]
 transform = Transform3D(3.940214e-08, 0.99555933, -0.09414336, 3.9210115e-09, 0.09414333, 0.9955591, 1, -3.959625e-08, -1.9413182e-10, -0.6846279, -0.01426065, -0.003497064)
@@ -406,8 +455,8 @@ mesh = SubResource("SphereMesh_t5pcx")
 [node name="MinusInteract" type="Area3D" parent="Ship/LeverPad/ThrustPad/ButtonThrust/OrangeButton" unique_id=1575422836]
 script = ExtResource("10_choun")
 action_type = 1
-mode = 1
 ship_path = NodePath("../../../../..")
+shared_button_audio_path = NodePath("../../../../../Player/SharedButtonClick3D")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/LeverPad/ThrustPad/ButtonThrust/OrangeButton/MinusInteract" unique_id=1945867365]
 shape = SubResource("SphereShape3D_8di2w")
@@ -471,9 +520,9 @@ mesh = SubResource("SphereMesh_t5pcx")
 [node name="RefreshInteract" type="Area3D" parent="Ship/Plotter/RefreshPad/ButtonRefresh/OrangeButton" unique_id=576741626]
 script = ExtResource("10_choun")
 action_type = 2
-mode = 1
 ship_path = NodePath("../../../../..")
 trajectory_map_path = NodePath("../../../../TrajectoryViewport/TrajectoryMap")
+refresh_sound_path = NodePath("../../../../BeepPlayer3D")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Plotter/RefreshPad/ButtonRefresh/OrangeButton/RefreshInteract" unique_id=1908627944]
 shape = SubResource("SphereShape3D_8di2w")
@@ -495,16 +544,24 @@ collision_layer = 1
 collision_mask = 1
 script = ExtResource("10_choun")
 action_type = 3
+lever_path = NodePath("")
 ship_path = NodePath("../../../../../..")
 trajectory_map_path = NodePath("../../../../../TrajectoryViewport/TrajectoryMap")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("")
+refresh_sound_path = NodePath("")
 
 [node name="MinusInteract" parent="Ship/Plotter/ZoomPad/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(269794603, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
 collision_mask = 1
 script = ExtResource("10_choun")
 action_type = 3
+lever_path = NodePath("")
 ship_path = NodePath("../../../../../..")
 trajectory_map_path = NodePath("../../../../../TrajectoryViewport/TrajectoryMap")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("")
+refresh_sound_path = NodePath("")
 
 [node name="Label2" type="Label3D" parent="Ship/Plotter/ZoomPad" unique_id=812113934]
 transform = Transform3D(3.940213e-08, 0.9955592, -0.09414327, 3.921004e-09, 0.0941433, 0.99555904, 0.9999999, -3.959625e-08, -1.9413404e-10, -0.684628, -0.01426065, -0.00210327)
@@ -523,6 +580,11 @@ mesh = SubResource("QuadMesh_jbj1t")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.035649776)
 script = ExtResource("14_jkv2x")
 trajectory_map_path = NodePath("../../../TrajectoryViewport/TrajectoryMap")
+
+[node name="BeepPlayer3D" type="AudioStreamPlayer3D" parent="Ship/Plotter" unique_id=348830274]
+stream = ExtResource("15_jbj1t")
+max_distance = 153.12
+script = ExtResource("16_muem4")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1160708137]
 transform = Transform3D(-0.060390413, 0.67437214, -0.7359181, 0.09567984, 0.73777974, 0.6682264, 0.9935787, -0.030057967, -0.109078705, -1114.5103, 977.63934, 655.79926)
@@ -547,6 +609,26 @@ scale = Vector2(0.25, 0.25)
 texture = ExtResource("12_eb6dy")
 stretch_mode = 3
 
+[node name="EngineAudioController3D" type="Node3D" parent="." unique_id=1408560419]
+script = ExtResource("18_gqmmt")
+engine_loop_player_path = NodePath("EngineAudioPlayer3D")
+rattle_player_path = NodePath("EngineRattllePlayer3D")
+engine_volume_db = 5.0
+rattle_volume_db = 3.0
+
+[node name="EngineAudioPlayer3D" type="AudioStreamPlayer3D" parent="EngineAudioController3D" unique_id=1720892168]
+stream = ExtResource("19_yc10j")
+volume_db = 6.0
+max_db = 5.523
+max_distance = 114.84
+panning_strength = 1.9
+
+[node name="EngineRattllePlayer3D" type="AudioStreamPlayer3D" parent="EngineAudioController3D" unique_id=9703800]
+stream = ExtResource("20_jscy8")
+volume_db = 11.963
+max_distance = 191.4
+
+[editable path="Ship/Player"]
 [editable path="Ship/LeverPad/PitchLever"]
 [editable path="Ship/LeverPad/YawLever"]
 [editable path="Ship/LeverPad/RollLever"]

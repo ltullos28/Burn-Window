@@ -9,6 +9,8 @@ extends Node3D
 @export var max_rot_accel: float = 1.8
 @export var angular_drag: float = 0.5
 
+@export var engine_audio_path: NodePath
+
 var angular_velocity: Vector3 = Vector3.ZERO
 
 var pitch_control: float = 0.0
@@ -17,18 +19,18 @@ var roll_control: float = 0.0
 
 var thrust_held: bool = false
 
+var engine_audio: Node
+
 func _ready() -> void:
 	position = Vector3.ZERO
+	engine_audio = get_node_or_null(engine_audio_path)
 
 func _physics_process(delta: float) -> void:
 	# ---- TRANSLATION ----
 	if thrust_held:
-		# One rear thruster:
-		# Forward thrust is +Z relative to the ship node
 		var world_accel: Vector3 = global_transform.basis * Vector3(0.0, 0.0, main_thrust)
 		SimulationState.ship_vel += world_accel * delta
 
-	# Optional keyboard debug assists can stay for now if you still want them
 	if Input.is_action_pressed("ship_damp"):
 		SimulationState.ship_vel = SimulationState.ship_vel.move_toward(
 			Vector3.ZERO,
@@ -38,14 +40,11 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("ship_kill_velocity"):
 		SimulationState.ship_vel = Vector3.ZERO
 
-	# Gravity always acts
 	SimulationState.ship_vel += SimulationState.gravity_accel_at(SimulationState.ship_pos) * delta
 
-	# Clamp speed for prototype sanity
 	if SimulationState.ship_vel.length() > max_speed:
 		SimulationState.ship_vel = SimulationState.ship_vel.normalized() * max_speed
 
-	# Advance simulation
 	SimulationState.ship_pos += SimulationState.ship_vel * delta
 
 	# ---- ROTATION ----
@@ -59,7 +58,6 @@ func _physics_process(delta: float) -> void:
 	rotate_object_local(Vector3.UP, angular_velocity.y * delta)
 	rotate_object_local(Vector3.BACK, angular_velocity.z * delta)
 
-	# Keep rendered ship near origin
 	position = Vector3.ZERO
 
 func set_pitch_control(value: float) -> void:
@@ -73,3 +71,6 @@ func set_roll_control(value: float) -> void:
 
 func set_thrust_held(value: bool) -> void:
 	thrust_held = value
+
+	if engine_audio != null and engine_audio.has_method("set_thrust_audio_active"):
+		engine_audio.set_thrust_audio_active(value)

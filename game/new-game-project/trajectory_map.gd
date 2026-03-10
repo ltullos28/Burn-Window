@@ -11,7 +11,7 @@ extends Control
 @export var prediction_step_seconds: float = 1.0
 @export var prediction_steps: int = 1200
 
-@export var reveal_duration: float = 1.8
+@export var reveal_duration: float = 5
 
 var ship: Node3D
 var predicted_rel_points: Array[Vector2] = []
@@ -147,6 +147,9 @@ func _compute_orbit_solution() -> void:
 		else:
 			orbit_classification = "ESCAPE"
 
+func get_reveal_duration() -> float:
+	return reveal_duration
+	
 func _draw() -> void:
 	var rect_size: Vector2 = size
 	if rect_size.x <= 0.0 or rect_size.y <= 0.0:

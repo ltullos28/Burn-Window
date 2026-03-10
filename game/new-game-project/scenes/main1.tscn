@@ -1,0 +1,634 @@
+[gd_scene format=3 uid="uid://crtnlxkk4s0pu"]
+
+[ext_resource type="Script" uid="uid://bl6gkylc5e7nf" path="res://planet_render.gd" id="1_5jxds"]
+[ext_resource type="Script" uid="uid://cp6027kqdijr0" path="res://scenes/starfield.gd" id="2_ori7w"]
+[ext_resource type="Script" uid="uid://c2ai8g2j2eetg" path="res://scenes/ship.gd" id="3_glt4o"]
+[ext_resource type="Script" uid="uid://cjrxchob2km7y" path="res://scenes/navball.gd" id="4_6tbwo"]
+[ext_resource type="Material" uid="uid://vsv6ut5ycs5j" path="res://scenes/prograde.tres" id="5_ne5jl"]
+[ext_resource type="Material" uid="uid://x5g80f8stpen" path="res://scenes/radial.tres" id="6_pc3es"]
+[ext_resource type="PackedScene" uid="uid://cjx7wv248tqai" path="res://scenes/player.tscn" id="7_41v0w"]
+[ext_resource type="Script" uid="uid://bklrjmpmr02gc" path="res://scenes/control_plate_follow.gd" id="8_wnj1c"]
+[ext_resource type="PackedScene" uid="uid://csjpa7svl0ilc" path="res://scenes/lever.tscn" id="9_dvvvr"]
+[ext_resource type="Script" uid="uid://cmh7xgkwrf0pc" path="res://interact_button.gd" id="10_j844q"]
+[ext_resource type="Material" uid="uid://dh1hxv0knaof3" path="res://scenes/metal.tres" id="11_wwta0"]
+[ext_resource type="Script" uid="uid://7tgqtatvicea" path="res://scenes/trajectory_display.gd" id="12_86kh5"]
+[ext_resource type="Script" uid="uid://bdeyotygoot6b" path="res://trajectory_map.gd" id="13_jy77n"]
+[ext_resource type="Script" uid="uid://cakxcepp6bpf4" path="res://scenes/trajectory_info_label.gd" id="14_ynhq8"]
+[ext_resource type="AudioStream" uid="uid://bttamu8iwvvkx" path="res://scenes/freesound_community-beepbeepbeep-53921.mp3" id="15_w6afh"]
+[ext_resource type="Script" uid="uid://racebaa8t5lo" path="res://trajectory_refresh_sound.gd" id="16_7b3ba"]
+[ext_resource type="Texture2D" uid="uid://bgro3ku8qbr35" path="res://crosshair065.png" id="17_2x4y3"]
+[ext_resource type="Script" uid="uid://dnt5njq8bjdwg" path="res://engine_audio.gd" id="18_cgtpv"]
+[ext_resource type="AudioStream" uid="uid://b01omr80sc68k" path="res://scenes/freesound_community-large-rocket-engine-86240.mp3" id="19_7n1c5"]
+[ext_resource type="AudioStream" uid="uid://ck5tk6bm4vwo8" path="res://scenes/freesound_community-rattelingmetalshelves-76404.mp3" id="20_nhqdy"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jyhfs"]
+albedo_color = Color(0.8823829, 0.82665706, 0.76737565, 1)
+emission = Color(0.88235295, 0.827451, 0.76862746, 1)
+emission_energy_multiplier = 0.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_0wfyh"]
+radius = 180.0
+height = 360.0
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sugp2"]
+sky_top_color = Color(0, 0, 0, 1)
+sky_horizon_color = Color(0, 0, 0, 1)
+ground_bottom_color = Color(0, 0, 0, 1)
+ground_horizon_color = Color(0, 0, 0, 1)
+sun_angle_max = 4.0
+energy_multiplier = 26.89
+
+[sub_resource type="Sky" id="Sky_jyhfs"]
+sky_material = SubResource("ProceduralSkyMaterial_sugp2")
+
+[sub_resource type="Environment" id="Environment_tbgi4"]
+background_mode = 2
+sky = SubResource("Sky_jyhfs")
+ambient_light_source = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o5qli"]
+albedo_color = Color(0.16, 0.15178667, 0.12479999, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_o5qli"]
+size = Vector3(10, 0.2, 10)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0wfyh"]
+size = Vector3(10, 0.2, 10)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_sugp2"]
+size = Vector3(10, 0.2, 10)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0wfyh"]
+albedo_color = Color(0.3000582, 0.28466323, 0.23482919, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_sugp2"]
+size = Vector3(2.5, 0.2, 2.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tefeu"]
+size = Vector3(2.5, 0.2, 2.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_o6xl0"]
+size = Vector3(2.5, 0.2, 2.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tipki"]
+size = Vector3(2.5, 0.2, 2.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_jyhfs"]
+size = Vector3(10, 0.2, 1.25)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tbgi4"]
+size = Vector3(10, 0.2, 1.25)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o6xl0"]
+albedo_color = Color(0.14739999, 0.22, 0.22, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tipki"]
+size = Vector3(5, 0.1, 2.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_85g3d"]
+size = Vector3(5, 0.2, 2.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_sgp6g"]
+size = Vector3(10, 0.2, 5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_o5qli"]
+size = Vector3(10, 0.2, 5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sugp2"]
+albedo_color = Color(0, 0.9309246, 1, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_o5qli"]
+
+[sub_resource type="PrismMesh" id="PrismMesh_85g3d"]
+size = Vector3(0.25, 0.25, 0.25)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_85g3d"]
+emission_enabled = true
+emission = Color(14.416673, 14.416673, 14.416673, 1)
+emission_energy_multiplier = 1.75
+
+[sub_resource type="BoxMesh" id="BoxMesh_ya4ey"]
+size = Vector3(0.1, 0.3, 0.1)
+
+[sub_resource type="TorusMesh" id="TorusMesh_choun"]
+inner_radius = 0.05
+outer_radius = 0.1
+
+[sub_resource type="BoxMesh" id="BoxMesh_choun"]
+size = Vector3(2, 1.5, 0.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_jbj1t"]
+size = Vector3(0.5, 0.2, 0.75)
+
+[sub_resource type="TorusMesh" id="TorusMesh_jxk16"]
+inner_radius = 0.1
+outer_radius = 0.15
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trceg"]
+albedo_color = Color(0.98039216, 0.3254902, 0, 1)
+emission_enabled = true
+emission = Color(0.98039216, 0.3254902, 0, 1)
+emission_energy_multiplier = 1.75
+
+[sub_resource type="SphereMesh" id="SphereMesh_t5pcx"]
+radius = 0.1
+height = 0.2
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_8di2w"]
+radius = 0.15
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_trceg"]
+top_radius = 0.2
+bottom_radius = 0.4
+height = 0.5
+
+[sub_resource type="TorusMesh" id="TorusMesh_a8y0u"]
+inner_radius = 1.462
+outer_radius = 2.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_muem4"]
+size = Vector2(3.3, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dp3eg"]
+albedo_color = Color(0, 0, 0, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jkv2x"]
+albedo_color = Color(0, 0, 0, 1)
+
+[sub_resource type="QuadMesh" id="QuadMesh_jbj1t"]
+size = Vector2(2, 3)
+
+[node name="Main" type="Node3D" unique_id=1363539468]
+
+[node name="Planet" type="MeshInstance3D" parent="." unique_id=1363273613]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 900)
+layers = 2
+material_override = SubResource("StandardMaterial3D_jyhfs")
+mesh = SubResource("SphereMesh_0wfyh")
+script = ExtResource("1_5jxds")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1057810439]
+environment = SubResource("Environment_tbgi4")
+
+[node name="Starfield" type="Node3D" parent="." unique_id=1439104610]
+script = ExtResource("2_ori7w")
+radius = 1000.0
+min_scale = 2.5
+max_scale = 4.0
+target_path = NodePath("../Ship")
+
+[node name="MultiMeshInstance3D" type="MultiMeshInstance3D" parent="Starfield" unique_id=898549246]
+
+[node name="Ship" type="Node3D" parent="." unique_id=37130247]
+script = ExtResource("3_glt4o")
+engine_audio_path = NodePath("../EngineAudioController3D")
+
+[node name="Floor" type="MeshInstance3D" parent="Ship" unique_id=147530356]
+material_override = SubResource("StandardMaterial3D_o5qli")
+mesh = SubResource("BoxMesh_o5qli")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Floor" unique_id=1187339783]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Floor/StaticBody3D" unique_id=1028028982]
+shape = SubResource("BoxShape3D_0wfyh")
+
+[node name="Ceiling" type="MeshInstance3D" parent="Ship" unique_id=846256840]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0)
+mesh = SubResource("BoxMesh_o5qli")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Ceiling" unique_id=1751129008]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Ceiling/StaticBody3D" unique_id=1059927884]
+shape = SubResource("BoxShape3D_sugp2")
+
+[node name="Wall1" type="MeshInstance3D" parent="Ship" unique_id=1465965358]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 3.75, 2.5, 5)
+material_override = SubResource("StandardMaterial3D_0wfyh")
+mesh = SubResource("BoxMesh_sugp2")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall1" unique_id=2061625647]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall1/StaticBody3D" unique_id=1594838784]
+shape = SubResource("BoxShape3D_tefeu")
+
+[node name="Wall6" type="MeshInstance3D" parent="Ship/Wall1" unique_id=1684418367]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, 0)
+material_override = SubResource("StandardMaterial3D_0wfyh")
+mesh = SubResource("BoxMesh_o6xl0")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall1/Wall6" unique_id=1166786218]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall1/Wall6/StaticBody3D" unique_id=725356202]
+shape = SubResource("BoxShape3D_tipki")
+
+[node name="Wall7" type="MeshInstance3D" parent="Ship/Wall1" unique_id=1366141066]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.75, 0, 1.875)
+material_override = SubResource("StandardMaterial3D_0wfyh")
+mesh = SubResource("BoxMesh_jyhfs")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall1/Wall7" unique_id=1297803860]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall1/Wall7/StaticBody3D" unique_id=1093082137]
+shape = SubResource("BoxShape3D_tbgi4")
+
+[node name="Wall8" type="MeshInstance3D" parent="Ship/Wall1" unique_id=585152066]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.75, 0, -1.8749998)
+material_override = SubResource("StandardMaterial3D_0wfyh")
+mesh = SubResource("BoxMesh_jyhfs")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall1/Wall8" unique_id=1860419779]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall1/Wall8/StaticBody3D" unique_id=553130518]
+shape = SubResource("BoxShape3D_tbgi4")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Ship/Wall1/Wall8/StaticBody3D" unique_id=241856146]
+shape = SubResource("BoxShape3D_tbgi4")
+
+[node name="Window" type="MeshInstance3D" parent="Ship/Wall1" unique_id=911977940]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.75, 0, 0)
+material_override = SubResource("StandardMaterial3D_o6xl0")
+transparency = 0.32
+mesh = SubResource("BoxMesh_tipki")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall1/Window" unique_id=1570709327]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall1/Window/StaticBody3D" unique_id=652123476]
+shape = SubResource("BoxShape3D_85g3d")
+
+[node name="Wall2" type="MeshInstance3D" parent="Ship" unique_id=326270223]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 2.5, -5)
+mesh = SubResource("BoxMesh_sgp6g")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall2" unique_id=78791163]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall2/StaticBody3D" unique_id=1033829118]
+shape = SubResource("BoxShape3D_o5qli")
+
+[node name="Wall3" type="MeshInstance3D" parent="Ship" unique_id=1515649839]
+transform = Transform3D(-0.00035201228, -0.9999972, -0.0023445124, 0.0011514318, 0.0023441077, -0.9999966, 0.9999993, -0.00035469842, 0.0011506074, 5, 2.5, 0)
+mesh = SubResource("BoxMesh_sgp6g")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall3" unique_id=1882695354]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall3/StaticBody3D" unique_id=1984910389]
+shape = SubResource("BoxShape3D_o5qli")
+
+[node name="Wall4" type="MeshInstance3D" parent="Ship" unique_id=221809690]
+transform = Transform3D(-4.371139e-08, -1, 0, -4.371139e-08, 1.9106855e-15, -1, 1, -4.371139e-08, -4.371139e-08, -5, 2.5, 0)
+mesh = SubResource("BoxMesh_sgp6g")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ship/Wall4" unique_id=854816308]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Wall4/StaticBody3D" unique_id=245659756]
+shape = SubResource("BoxShape3D_o5qli")
+
+[node name="NavballRig" type="Node3D" parent="Ship" unique_id=2060438747]
+transform = Transform3D(-6.556708e-08, -1.5, 6.556708e-08, 0, -6.556708e-08, -1.5, 1.5, -6.556708e-08, 2.8660283e-15, 0, 1, 0)
+script = ExtResource("4_6tbwo")
+ship_path = NodePath("..")
+ball_path = NodePath("NavballBall")
+prograde_path = NodePath("NavballBall/ProgradeMarker")
+retrograde_path = NodePath("NavballBall/RetrogradeMarker")
+radial_in_path = NodePath("NavballBall/RadialInMarker")
+radial_out_path = NodePath("NavballBall/RadialOutMarker")
+nose_path = NodePath("NavballBall/NoseMarker")
+marker_radius = 0.52
+
+[node name="NavballBall" type="MeshInstance3D" parent="Ship/NavballRig" unique_id=945965139]
+transform = Transform3D(1, 0, 2.1175824e-22, 0, 1, -8.351871e-23, 2.1175824e-22, -8.3518705e-23, 1, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_sugp2")
+mesh = SubResource("SphereMesh_o5qli")
+
+[node name="ProgradeMarker" type="MeshInstance3D" parent="Ship/NavballRig/NavballBall" unique_id=811720369]
+transform = Transform3D(1, -8.4703295e-22, -3.7024986e-29, 0, -4.371139e-08, 1, -8.4703295e-22, -1, -4.371139e-08, 0, -2.388277e-08, -0.54637414)
+material_override = ExtResource("5_ne5jl")
+mesh = SubResource("PrismMesh_85g3d")
+
+[node name="NoseMarker" type="MeshInstance3D" parent="Ship/NavballRig/NavballBall" unique_id=1997552499]
+transform = Transform3D(1, -8.4703295e-22, -3.7024986e-29, 0, -4.371139e-08, 1, -8.4703295e-22, -1, -4.371139e-08, 0, -2.388277e-08, -0.54637414)
+material_override = SubResource("StandardMaterial3D_85g3d")
+mesh = SubResource("BoxMesh_ya4ey")
+
+[node name="RadialInMarker" type="MeshInstance3D" parent="Ship/NavballRig/NavballBall" unique_id=547584191]
+transform = Transform3D(1, -8.940904e-22, 0, 0, -4.371139e-08, 1, -8.4703295e-22, -1, -4.371139e-08, 0, 0, -0.546)
+material_override = ExtResource("6_pc3es")
+mesh = SubResource("PrismMesh_85g3d")
+
+[node name="RetrogradeMarker" type="MeshInstance3D" parent="Ship/NavballRig/NavballBall" unique_id=16348278]
+transform = Transform3D(1, -8.4703295e-22, -3.7024986e-29, 0, -4.371139e-08, 1, -8.4703295e-22, -1, -4.371139e-08, 0, -2.388277e-08, -0.54637414)
+material_override = ExtResource("5_ne5jl")
+mesh = SubResource("TorusMesh_choun")
+
+[node name="RadialOutMarker" type="MeshInstance3D" parent="Ship/NavballRig/NavballBall" unique_id=784666661]
+transform = Transform3D(1, -8.940904e-22, 0, 0, -4.371139e-08, 1, -8.4703295e-22, -1, -4.371139e-08, 0, 0, -0.546)
+material_override = ExtResource("6_pc3es")
+mesh = SubResource("TorusMesh_choun")
+
+[node name="Player" parent="Ship" unique_id=1341137815 instance=ExtResource("7_41v0w")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.369, 0.5, -3.164)
+ship_path = NodePath("..")
+
+[node name="SpotLight3D" type="SpotLight3D" parent="Ship" unique_id=1486081121]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 6.2068315, 0)
+light_color = Color(0.8426975, 0.9598965, 0.9895298, 1)
+light_energy = 0.841
+spot_range = 50.167
+spot_angle = 85.99
+
+[node name="LeverPad" type="MeshInstance3D" parent="Ship" unique_id=258480972]
+transform = Transform3D(1, 0, 0, 0, 0.36240548, -0.93202055, 0, 0.93202055, 0.36240548, 0, 0.25582564, -1.9138061)
+mesh = SubResource("BoxMesh_choun")
+script = ExtResource("8_wnj1c")
+player_path = NodePath("../Player")
+navball_path = NodePath("../NavCosmetics/BallPole")
+
+[node name="PitchLever" parent="Ship/LeverPad" unique_id=1134752273 instance=ExtResource("9_dvvvr")]
+transform = Transform3D(1.9106853e-15, 4.3711378e-08, -0.99999994, 0.99999994, -4.3711378e-08, 0, -4.3711385e-08, -0.99999976, -4.3711385e-08, 0.75, 0.125, -0.125)
+ship_path = NodePath("../..")
+
+[node name="PlusInteract" parent="Ship/LeverPad/PitchLever/BaseMesh/ButtonPlus/GreenButton" parent_id_path=PackedInt32Array(1134752273, 1574656833) index="0" unique_id=314905493]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
+
+[node name="MinusInteract" parent="Ship/LeverPad/PitchLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(1134752273, 751139414) index="0" unique_id=1686558501]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
+
+[node name="Label" type="Label3D" parent="Ship/LeverPad/PitchLever" unique_id=627392537]
+transform = Transform3D(3.9402128e-08, 0.99555916, -0.09414324, 3.9209986e-09, 0.09414327, 0.99555886, 0.99999976, -3.959625e-08, -1.9413982e-10, -0.684628, -0.014260411, 2.9802322e-07)
+modulate = Color(0.6189163, 0.98897666, 0.5400536, 1)
+text = "Pitch"
+
+[node name="YawLever" parent="Ship/LeverPad" unique_id=1546800821 instance=ExtResource("9_dvvvr")]
+transform = Transform3D(1.9106855e-15, 4.3711378e-08, -0.99999994, 1, -4.3711378e-08, 0, -4.371139e-08, -0.99999976, -4.3711385e-08, 0, 0.125, -0.125)
+axis = 1
+ship_path = NodePath("../..")
+
+[node name="PlusInteract" parent="Ship/LeverPad/YawLever/BaseMesh/ButtonPlus/GreenButton" parent_id_path=PackedInt32Array(1546800821, 1574656833) index="0" unique_id=314905493]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
+
+[node name="MinusInteract" parent="Ship/LeverPad/YawLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(1546800821, 751139414) index="0" unique_id=1686558501]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
+
+[node name="Label2" type="Label3D" parent="Ship/LeverPad/YawLever" unique_id=532953614]
+transform = Transform3D(3.940213e-08, 0.9955592, -0.09414327, 3.921004e-09, 0.0941433, 0.99555904, 0.9999999, -3.959625e-08, -1.9413404e-10, -0.684628, -0.01426065, -0.00210327)
+modulate = Color(0.6189163, 0.98897666, 0.5400536, 1)
+text = "Yaw"
+
+[node name="RollLever" parent="Ship/LeverPad" unique_id=419383447 instance=ExtResource("9_dvvvr")]
+transform = Transform3D(1.9106859e-15, 4.3711385e-08, -0.99999994, 1.0000001, -4.3711385e-08, 1.5529405e-22, -4.3711392e-08, -0.9999999, -4.3711385e-08, -0.75, 0.125, -0.125)
+axis = 2
+ship_path = NodePath("../..")
+
+[node name="PlusInteract" parent="Ship/LeverPad/RollLever/BaseMesh/ButtonPlus/GreenButton" parent_id_path=PackedInt32Array(419383447, 1574656833) index="0" unique_id=314905493]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
+
+[node name="MinusInteract" parent="Ship/LeverPad/RollLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(419383447, 751139414) index="0" unique_id=1686558501]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 0
+mode = 0
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
+refresh_sound_path = NodePath("")
+
+[node name="Label3" type="Label3D" parent="Ship/LeverPad/RollLever" unique_id=2102518387]
+transform = Transform3D(3.940214e-08, 0.99555933, -0.09414336, 3.9210115e-09, 0.09414333, 0.9955591, 1, -3.959625e-08, -1.9413182e-10, -0.6846279, -0.01426065, -0.003497064)
+modulate = Color(0.6189163, 0.98897666, 0.5400536, 1)
+text = "Roll
+"
+
+[node name="ThrustPad" type="MeshInstance3D" parent="Ship/LeverPad" unique_id=1250243346]
+transform = Transform3D(0.99999994, 0, 0, 0, -2.9802322e-08, -0.99999994, 0, 0.99999994, -2.9802322e-08, -1.2331536, 0.11487949, -0.00077432394)
+mesh = SubResource("BoxMesh_jbj1t")
+
+[node name="ButtonThrust" type="MeshInstance3D" parent="Ship/LeverPad/ThrustPad" unique_id=1889872440]
+transform = Transform3D(6.556709e-08, 6.556707e-08, -1.5, -2.2649371e-07, -1.5, -6.556708e-08, -1.5, 2.2649371e-07, -6.556708e-08, 0, -0.104, -0.18)
+material_override = ExtResource("11_wwta0")
+mesh = SubResource("TorusMesh_jxk16")
+
+[node name="OrangeButton" type="MeshInstance3D" parent="Ship/LeverPad/ThrustPad/ButtonThrust" unique_id=1366934671]
+material_override = SubResource("StandardMaterial3D_trceg")
+mesh = SubResource("SphereMesh_t5pcx")
+
+[node name="MinusInteract" type="Area3D" parent="Ship/LeverPad/ThrustPad/ButtonThrust/OrangeButton" unique_id=1575422836]
+script = ExtResource("10_j844q")
+action_type = 1
+ship_path = NodePath("../../../../..")
+shared_button_audio_path = NodePath("../../../../../Player/SharedButtonClick3D")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/LeverPad/ThrustPad/ButtonThrust/OrangeButton/MinusInteract" unique_id=1945867365]
+shape = SubResource("SphereShape3D_8di2w")
+
+[node name="Label4" type="Label3D" parent="Ship/LeverPad/ThrustPad" unique_id=1939368501]
+transform = Transform3D(-1, -8.742287e-08, 0, -3.821371e-15, 4.3711434e-08, -1.0000005, 8.742278e-08, -1.0000011, -4.371141e-08, 0, -0.10799801, 0.20580983)
+modulate = Color(0.6189163, 0.98897666, 0.5400536, 1)
+text = "Thrust
+"
+font_size = 28
+
+[node name="NavCosmetics" type="Node3D" parent="Ship" unique_id=1869265730]
+
+[node name="BallPole" type="MeshInstance3D" parent="Ship/NavCosmetics" unique_id=381689340]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.20164242, 0)
+material_override = ExtResource("11_wwta0")
+mesh = SubResource("CylinderMesh_trceg")
+
+[node name="ControlPadTrack" type="MeshInstance3D" parent="Ship/NavCosmetics" unique_id=1488183917]
+material_override = ExtResource("11_wwta0")
+mesh = SubResource("TorusMesh_a8y0u")
+
+[node name="Plotter" type="Node3D" parent="Ship" unique_id=54536820]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2317543, -4.8966947)
+
+[node name="ScreenBacking" type="MeshInstance3D" parent="Ship/Plotter" unique_id=397927819]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.04342842)
+mesh = SubResource("QuadMesh_muem4")
+surface_material_override/0 = SubResource("StandardMaterial3D_dp3eg")
+
+[node name="TrajectoryDisplay" type="Sprite3D" parent="Ship/Plotter" unique_id=1081671706]
+transform = Transform3D(-0.99999994, 0, -8.742277e-08, 0, 1, 0, 8.742277e-08, 0, -0.99999994, 0, 0, 0.12520933)
+pixel_size = 0.003
+script = ExtResource("12_86kh5")
+viewport_path = NodePath("../TrajectoryViewport")
+
+[node name="TrajectoryViewport" type="SubViewport" parent="Ship/Plotter" unique_id=864840597]
+size = Vector2i(1024, 576)
+render_target_update_mode = 4
+
+[node name="TrajectoryMap" type="Control" parent="Ship/Plotter/TrajectoryViewport" unique_id=932887870]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("13_jy77n")
+
+[node name="RefreshPad" type="MeshInstance3D" parent="Ship/Plotter" unique_id=1499264343]
+transform = Transform3D(-0.99999994, 8.742277e-08, 0, 3.8213705e-15, 4.3711385e-08, -0.99999994, -8.742277e-08, -0.99999994, -4.3711385e-08, -2.1727533, 0.018245697, -0.0033054352)
+mesh = SubResource("BoxMesh_jbj1t")
+
+[node name="ButtonRefresh" type="MeshInstance3D" parent="Ship/Plotter/RefreshPad" unique_id=228579103]
+transform = Transform3D(6.556709e-08, 6.556707e-08, -1.5, -2.2649371e-07, -1.5, -6.556708e-08, -1.5, 2.2649371e-07, -6.556708e-08, 0, -0.104, -0.18)
+material_override = ExtResource("11_wwta0")
+mesh = SubResource("TorusMesh_jxk16")
+
+[node name="OrangeButton" type="MeshInstance3D" parent="Ship/Plotter/RefreshPad/ButtonRefresh" unique_id=480792177]
+material_override = SubResource("StandardMaterial3D_trceg")
+mesh = SubResource("SphereMesh_t5pcx")
+
+[node name="RefreshInteract" type="Area3D" parent="Ship/Plotter/RefreshPad/ButtonRefresh/OrangeButton" unique_id=576741626]
+script = ExtResource("10_j844q")
+action_type = 2
+ship_path = NodePath("../../../../..")
+trajectory_map_path = NodePath("../../../../TrajectoryViewport/TrajectoryMap")
+refresh_sound_path = NodePath("../../../../BeepPlayer3D")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Plotter/RefreshPad/ButtonRefresh/OrangeButton/RefreshInteract" unique_id=1908627944]
+shape = SubResource("SphereShape3D_8di2w")
+
+[node name="Label4" type="Label3D" parent="Ship/Plotter/RefreshPad" unique_id=1752701794]
+transform = Transform3D(-1, -8.742287e-08, 0, -3.821371e-15, 4.3711434e-08, -1.0000005, 8.742278e-08, -1.0000011, -4.371141e-08, 0, -0.10799801, 0.20580983)
+modulate = Color(0.6189163, 0.98897666, 0.5400536, 1)
+text = "Refresh
+"
+font_size = 28
+
+[node name="ZoomPad" parent="Ship/Plotter" unique_id=269794603 instance=ExtResource("9_dvvvr")]
+transform = Transform3D(1.9106853e-15, 4.3711378e-08, 0.9999999, 0.99999994, -4.3711378e-08, 0, 4.3711385e-08, 0.99999976, -4.3711385e-08, 2.041545, 0, 0.040513992)
+axis = 1
+ship_path = NodePath("../..")
+
+[node name="PlusInteract" parent="Ship/Plotter/ZoomPad/BaseMesh/ButtonPlus/GreenButton" parent_id_path=PackedInt32Array(269794603, 1574656833) index="0" unique_id=314905493]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 3
+lever_path = NodePath("")
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("../../../../../TrajectoryViewport/TrajectoryMap")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("")
+refresh_sound_path = NodePath("")
+
+[node name="MinusInteract" parent="Ship/Plotter/ZoomPad/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(269794603, 751139414) index="0" unique_id=1686558501]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("10_j844q")
+action_type = 3
+lever_path = NodePath("")
+ship_path = NodePath("../../../../../..")
+trajectory_map_path = NodePath("../../../../../TrajectoryViewport/TrajectoryMap")
+shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
+rotation_whir_path = NodePath("")
+refresh_sound_path = NodePath("")
+
+[node name="Label2" type="Label3D" parent="Ship/Plotter/ZoomPad" unique_id=812113934]
+transform = Transform3D(3.940213e-08, 0.9955592, -0.09414327, 3.921004e-09, 0.0941433, 0.99555904, 0.9999999, -3.959625e-08, -1.9413404e-10, -0.684628, -0.01426065, -0.00210327)
+modulate = Color(0.6189163, 0.98897666, 0.5400536, 1)
+text = "Zoom
+"
+
+[node name="InfoScreen" type="Node3D" parent="Ship/Plotter" unique_id=2076495679]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6416924, 0, 0.21661377)
+
+[node name="ScreenBackingInfo" type="MeshInstance3D" parent="Ship/Plotter/InfoScreen" unique_id=2129565755]
+material_override = SubResource("StandardMaterial3D_jkv2x")
+mesh = SubResource("QuadMesh_jbj1t")
+
+[node name="InfoLabel3D" type="Label3D" parent="Ship/Plotter/InfoScreen/ScreenBackingInfo" unique_id=1707348103]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.035649776)
+script = ExtResource("14_ynhq8")
+trajectory_map_path = NodePath("../../../TrajectoryViewport/TrajectoryMap")
+
+[node name="BeepPlayer3D" type="AudioStreamPlayer3D" parent="Ship/Plotter" unique_id=348830274]
+stream = ExtResource("15_w6afh")
+max_distance = 153.12
+script = ExtResource("16_7b3ba")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1160708137]
+transform = Transform3D(-0.060390413, 0.67437214, -0.7359181, 0.09567984, 0.73777974, 0.6682264, 0.9935787, -0.030057967, -0.109078705, -1114.5103, 977.63934, 655.79926)
+light_color = Color(0.9977916, 0.8686757, 0.759414, 1)
+light_cull_mask = 4294966274
+
+[node name="CrosshairUI" type="CanvasLayer" parent="." unique_id=1766524851]
+
+[node name="TextureRect" type="TextureRect" parent="CrosshairUI" unique_id=1659135445]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 112.0
+offset_bottom = 112.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("17_2x4y3")
+stretch_mode = 3
+
+[node name="EngineAudioController3D" type="Node3D" parent="." unique_id=1408560419]
+script = ExtResource("18_cgtpv")
+engine_loop_player_path = NodePath("EngineAudioPlayer3D")
+rattle_player_path = NodePath("EngineRattllePlayer3D")
+engine_volume_db = 5.0
+rattle_volume_db = 3.0
+
+[node name="EngineAudioPlayer3D" type="AudioStreamPlayer3D" parent="EngineAudioController3D" unique_id=1720892168]
+stream = ExtResource("19_7n1c5")
+volume_db = 6.0
+max_db = 5.523
+max_distance = 114.84
+
+[node name="EngineRattllePlayer3D" type="AudioStreamPlayer3D" parent="EngineAudioController3D" unique_id=9703800]
+stream = ExtResource("20_nhqdy")
+volume_db = 11.963
+max_distance = 191.4
+
+[editable path="Ship/Player"]
+[editable path="Ship/LeverPad/PitchLever"]
+[editable path="Ship/LeverPad/YawLever"]
+[editable path="Ship/LeverPad/RollLever"]
+[editable path="Ship/Plotter/ZoomPad"]
