@@ -1,9 +1,9 @@
 extends Node3D
 
 # Translation
-@export var main_thrust: float = 0.03
+@export var main_thrust: float = 0.05
 @export var max_speed: float = 200.0
-@export var damping: float = 0.4
+@export var damping: float = 0.0
 
 # Rotation
 @export var max_rot_accel: float = 0.20

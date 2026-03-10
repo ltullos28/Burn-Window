@@ -23,6 +23,7 @@
 [ext_resource type="AudioStream" uid="uid://ck5tk6bm4vwo8" path="res://scenes/freesound_community-rattelingmetalshelves-76404.mp3" id="20_jscy8"]
 [ext_resource type="Script" uid="uid://6q3ws3wgu2wh" path="res://moon_render.gd" id="21_yc10j"]
 [ext_resource type="Texture2D" uid="uid://fr8y1ic0uve5" path="res://scenes/Dusty_02-1024x512.png" id="23_y6deb"]
+[ext_resource type="Script" uid="uid://d1qcfwne0l4s5" path="res://scenes/export_scene_heirarchy_to_json.gd" id="24_y6deb"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jyhfs"]
 albedo_color = Color(0.8823829, 0.82665706, 0.76737565, 1)
@@ -176,6 +177,7 @@ radius = 45.0
 height = 90.0
 
 [node name="Main" type="Node3D" unique_id=1363539468]
+script = ExtResource("24_y6deb")
 
 [node name="Planet" type="MeshInstance3D" parent="." unique_id=1363273613]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.826843, 40, 3689.17)
@@ -533,6 +535,7 @@ anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("8_a8y0u")
+ship_path = NodePath("../../..")
 
 [node name="RefreshPad" type="MeshInstance3D" parent="Ship/Plotter" unique_id=1499264343]
 transform = Transform3D(-0.99999994, 8.742277e-08, 0, 3.8213705e-15, 4.3711385e-08, -0.99999994, -8.742277e-08, -0.99999994, -4.3711385e-08, -2.1727533, 0.48760486, -0.0033054352)

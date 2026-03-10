@@ -7,7 +7,8 @@ enum CenterMode {
 }
 
 @export var ship_path: NodePath
-
+@export var min_prediction_steps: int = 1200
+@export var max_prediction_steps: int = 12000
 @export var pixels_per_unit: float = 0.046
 @export var min_pixels_per_unit: float = 0.0008
 @export var max_pixels_per_unit: float = 0.12
@@ -15,7 +16,7 @@ enum CenterMode {
 
 @export var prediction_step_seconds: float = 2.0
 @export var prediction_steps: int = 4000
-@export var reveal_duration: float = 5
+@export var reveal_duration: float = 4.5
 
 @export var center_mode: CenterMode = CenterMode.PLANET
 
@@ -26,26 +27,13 @@ enum CenterMode {
 @export var center_transition_duration: float = 0.65
 
 var ship: Node3D
-var predicted_ship_points: Array[Vector2] = []
-var predicted_moon_points: Array[Vector2] = []
+
+var predictor := TrajectoryPredictor.new()
+var orbit_solver := OrbitSolver.new()
+var solution := TrajectorySolution.new()
 
 var is_revealing: bool = false
 var reveal_elapsed: float = 0.0
-
-var closest_approach_distance: float = 0.0
-var closest_approach_time: float = 0.0
-
-var orbit_classification: String = "UNRESOLVED"
-var periapsis_distance: float = -1.0
-var apoapsis_distance: float = -1.0
-var eccentricity_value: float = -1.0
-var semi_major_axis_value: float = -1.0
-var orbital_period_value: float = -1.0
-
-var periapsis_marker_world: Vector2 = Vector2.ZERO
-var apoapsis_marker_world: Vector2 = Vector2.ZERO
-var has_periapsis_marker: bool = false
-var has_apoapsis_marker: bool = false
 
 var current_view_offset: Vector2 = Vector2.ZERO
 var transition_start_offset: Vector2 = Vector2.ZERO
@@ -59,7 +47,7 @@ func _ready() -> void:
 	current_view_offset = _get_target_view_offset()
 	transition_start_offset = current_view_offset
 
-	##request_refresh() uncomment to re-enable inital trajectory prediction
+	request_refresh()
 
 func _process(delta: float) -> void:
 	if is_revealing:
@@ -100,10 +88,48 @@ func _update_center_transition(delta: float) -> void:
 		transition_active = false
 
 func request_refresh() -> void:
-	_compute_prediction()
-	_compute_orbit_solution()
+	_compute_solution()
 	reveal_elapsed = 0.0
 	is_revealing = true
+
+func _compute_solution() -> void:
+	var steps_to_use := _get_dynamic_prediction_steps()
+	var prediction := predictor.compute(
+		SimulationState.ship_pos,
+		SimulationState.ship_vel,
+		SimulationState.sim_time,
+		prediction_step_seconds,
+		steps_to_use
+)
+
+	var orbit := orbit_solver.solve_planet_orbit(
+		SimulationState.ship_pos,
+		SimulationState.ship_vel,
+		SimulationState.planet_pos,
+		SimulationState.planet_mu,
+		SimulationState.planet_radius
+	)
+
+	solution = TrajectorySolution.new()
+
+	solution.ship_points = prediction["ship_points"]
+	solution.moon_points = prediction["moon_points"]
+	solution.closest_approach_distance = prediction["closest_approach_distance"]
+	solution.closest_approach_time = prediction["closest_approach_time"]
+	solution.moon_closest_approach_distance = prediction["moon_closest_approach_distance"]
+	solution.moon_closest_approach_time = prediction["moon_closest_approach_time"]
+	solution.moon_relative_speed_at_closest_approach = prediction["moon_relative_speed_at_closest_approach"]
+
+	solution.orbit_classification = orbit["orbit_classification"]
+	solution.periapsis_distance = orbit["periapsis_distance"]
+	solution.apoapsis_distance = orbit["apoapsis_distance"]
+	solution.eccentricity_value = orbit["eccentricity_value"]
+	solution.semi_major_axis_value = orbit["semi_major_axis_value"]
+	solution.orbital_period_value = orbit["orbital_period_value"]
+	solution.periapsis_marker_world = orbit["periapsis_marker_world"]
+	solution.apoapsis_marker_world = orbit["apoapsis_marker_world"]
+	solution.has_periapsis_marker = orbit["has_periapsis_marker"]
+	solution.has_apoapsis_marker = orbit["has_apoapsis_marker"]
 
 func zoom_in() -> void:
 	pixels_per_unit = clampf(pixels_per_unit + zoom_step, min_pixels_per_unit, max_pixels_per_unit)
@@ -123,7 +149,17 @@ func set_center_ship() -> void:
 func cycle_center_mode() -> void:
 	var next_mode: CenterMode = (center_mode + 1) % 3
 	_begin_center_transition(next_mode)
+func _get_dynamic_prediction_steps() -> int:
+	# pixels_per_unit:
+	# higher = zoomed in
+	# lower = zoomed out
+	#
+	# We invert that relationship so zooming out gives more steps.
 
+	var zoom_alpha := inverse_lerp(max_pixels_per_unit, min_pixels_per_unit, pixels_per_unit)
+	zoom_alpha = clampf(zoom_alpha, 0.0, 1.0)
+
+	return int(round(lerpf(min_prediction_steps, max_prediction_steps, zoom_alpha)))
 func _begin_center_transition(new_mode: CenterMode) -> void:
 	transition_start_offset = current_view_offset
 	transition_elapsed = 0.0
@@ -141,7 +177,7 @@ func get_center_mode_text() -> String:
 	return "UNKNOWN"
 
 func get_status_text() -> String:
-	if predicted_ship_points.is_empty():
+	if solution.ship_points.is_empty():
 		return "NO SOLUTION"
 	if is_revealing:
 		return "COMPUTING..."
@@ -151,28 +187,28 @@ func get_reference_body_text() -> String:
 	return "PLANET"
 
 func get_closest_approach_distance() -> float:
-	return closest_approach_distance
+	return solution.closest_approach_distance
 
 func get_closest_approach_time() -> float:
-	return closest_approach_time
+	return solution.closest_approach_time
 
 func get_classification() -> String:
-	return orbit_classification
+	return solution.orbit_classification
 
 func get_periapsis() -> float:
-	return periapsis_distance
+	return solution.periapsis_distance
 
 func get_apoapsis() -> float:
-	return apoapsis_distance
+	return solution.apoapsis_distance
 
 func get_eccentricity() -> float:
-	return eccentricity_value
+	return solution.eccentricity_value
 
 func get_semi_major_axis() -> float:
-	return semi_major_axis_value
+	return solution.semi_major_axis_value
 
 func get_orbital_period() -> float:
-	return orbital_period_value
+	return solution.orbital_period_value
 
 func get_zoom_value() -> float:
 	return pixels_per_unit
@@ -200,185 +236,13 @@ func get_ship_tangential_velocity() -> float:
 	return (SimulationState.ship_vel - radial_vec).length()
 
 func get_moon_closest_approach_distance() -> float:
-	if predicted_ship_points.is_empty() or predicted_moon_points.is_empty():
-		return -1.0
-
-	var best_d := INF
-	for i in range(min(predicted_ship_points.size(), predicted_moon_points.size())):
-		var d := predicted_ship_points[i].distance_to(predicted_moon_points[i])
-		if d < best_d:
-			best_d = d
-
-	return best_d
+	return solution.moon_closest_approach_distance
 
 func get_moon_closest_approach_time() -> float:
-	if predicted_ship_points.is_empty() or predicted_moon_points.is_empty():
-		return -1.0
-
-	var best_d := INF
-	var best_i := -1
-
-	for i in range(min(predicted_ship_points.size(), predicted_moon_points.size())):
-		var d := predicted_ship_points[i].distance_to(predicted_moon_points[i])
-		if d < best_d:
-			best_d = d
-			best_i = i
-
-	if best_i < 0:
-		return -1.0
-
-	return best_i * prediction_step_seconds
+	return solution.moon_closest_approach_time
 
 func get_moon_relative_speed_at_closest_approach() -> float:
-	var test_pos: Vector3 = SimulationState.ship_pos
-	var test_vel: Vector3 = SimulationState.ship_vel
-	var test_time: float = SimulationState.sim_time
-
-	var best_d := INF
-	var best_rel_speed := -1.0
-
-	for _i in range(prediction_steps):
-		var moon_angle: float = SimulationState.moon_orbit_phase + test_time * SimulationState.moon_orbit_speed
-		var predicted_moon_pos := SimulationState.planet_pos + Vector3(
-			cos(moon_angle) * SimulationState.moon_orbit_radius,
-			0.0,
-			sin(moon_angle) * SimulationState.moon_orbit_radius
-		)
-
-		var predicted_moon_vel := Vector3(
-			-sin(moon_angle),
-			0.0,
-			cos(moon_angle)
-		) * SimulationState.moon_orbit_linear_speed
-
-		var d: float = (test_pos - predicted_moon_pos).length()
-		if d < best_d:
-			best_d = d
-			best_rel_speed = (test_vel - predicted_moon_vel).length()
-
-		var accel := Vector3.ZERO
-		accel += _gravity_from_body(test_pos, SimulationState.planet_pos, SimulationState.planet_mu)
-		accel += _gravity_from_body(test_pos, predicted_moon_pos, SimulationState.moon_mu)
-
-		test_vel += accel * prediction_step_seconds
-		test_pos += test_vel * prediction_step_seconds
-		test_time += prediction_step_seconds * SimulationState.celestial_time_scale
-
-	return best_rel_speed
-
-func _compute_prediction() -> void:
-	predicted_ship_points.clear()
-	predicted_moon_points.clear()
-
-	var test_pos: Vector3 = SimulationState.ship_pos
-	var test_vel: Vector3 = SimulationState.ship_vel
-	var test_time: float = SimulationState.sim_time
-
-	var start_rel_planet: Vector3 = test_pos - SimulationState.planet_pos
-	closest_approach_distance = start_rel_planet.length()
-	closest_approach_time = 0.0
-
-	for i in range(prediction_steps):
-		var moon_angle: float = SimulationState.moon_orbit_phase + test_time * SimulationState.moon_orbit_speed
-		var predicted_moon_pos := SimulationState.planet_pos + Vector3(
-			cos(moon_angle) * SimulationState.moon_orbit_radius,
-			0.0,
-			sin(moon_angle) * SimulationState.moon_orbit_radius
-		)
-
-		var rel_ship_planet: Vector3 = test_pos - SimulationState.planet_pos
-		var rel_moon_planet: Vector3 = predicted_moon_pos - SimulationState.planet_pos
-
-		predicted_ship_points.append(Vector2(rel_ship_planet.x, -rel_ship_planet.z))
-		predicted_moon_points.append(Vector2(rel_moon_planet.x, -rel_moon_planet.z))
-
-		var d: float = rel_ship_planet.length()
-		if d < closest_approach_distance:
-			closest_approach_distance = d
-			closest_approach_time = float(i) * prediction_step_seconds
-
-		var accel := Vector3.ZERO
-		accel += _gravity_from_body(test_pos, SimulationState.planet_pos, SimulationState.planet_mu)
-		accel += _gravity_from_body(test_pos, predicted_moon_pos, SimulationState.moon_mu)
-
-		test_vel += accel * prediction_step_seconds
-		test_pos += test_vel * prediction_step_seconds
-		test_time += prediction_step_seconds * SimulationState.celestial_time_scale
-
-func _compute_orbit_solution() -> void:
-	var rel: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
-	var vel: Vector3 = SimulationState.ship_vel
-
-	var r: float = rel.length()
-	var v2: float = vel.length_squared()
-	var mu: float = SimulationState.planet_mu
-
-	has_periapsis_marker = false
-	has_apoapsis_marker = false
-	eccentricity_value = -1.0
-	semi_major_axis_value = -1.0
-	orbital_period_value = -1.0
-
-	if r <= 0.0001 or mu <= 0.0001:
-		orbit_classification = "UNRESOLVED"
-		periapsis_distance = -1.0
-		apoapsis_distance = -1.0
-		return
-
-	var specific_energy: float = 0.5 * v2 - mu / r
-	var h: Vector3 = rel.cross(vel)
-	var e_vec: Vector3 = vel.cross(h) / mu - rel.normalized()
-	var e: float = e_vec.length()
-
-	eccentricity_value = e
-
-	if specific_energy < 0.0:
-		var a: float = -mu / (2.0 * specific_energy)
-		semi_major_axis_value = a
-
-		periapsis_distance = a * (1.0 - e)
-		apoapsis_distance = a * (1.0 + e)
-
-		if a > 0.0:
-			orbital_period_value = TAU * sqrt(pow(a, 3.0) / mu)
-
-		if e_vec.length() > 0.0001:
-			var peri_dir := Vector2(e_vec.x, -e_vec.z).normalized()
-			periapsis_marker_world = peri_dir * periapsis_distance
-			has_periapsis_marker = true
-
-			if e < 1.0:
-				apoapsis_marker_world = -peri_dir * apoapsis_distance
-				has_apoapsis_marker = true
-
-		if periapsis_distance <= SimulationState.planet_radius:
-			orbit_classification = "IMPACT"
-		elif e < 1.0:
-			if abs(apoapsis_distance - periapsis_distance) < 0.5:
-				orbit_classification = "CIRCULAR"
-			else:
-				orbit_classification = "ORBIT"
-		else:
-			orbit_classification = "UNRESOLVED"
-	else:
-		periapsis_distance = -1.0
-		apoapsis_distance = -1.0
-		semi_major_axis_value = -1.0
-		orbital_period_value = -1.0
-
-		if closest_approach_distance <= SimulationState.planet_radius:
-			orbit_classification = "IMPACT"
-		else:
-			orbit_classification = "ESCAPE"
-
-func _gravity_from_body(position: Vector3, body_pos: Vector3, mu: float) -> Vector3:
-	var offset: Vector3 = body_pos - position
-	var distance: float = offset.length()
-
-	if distance < SimulationState.min_gravity_distance:
-		distance = SimulationState.min_gravity_distance
-
-	return offset * mu / pow(distance, 3.0)
+	return solution.moon_relative_speed_at_closest_approach
 
 func _draw_dashed_polyline(points: Array[Vector2], color: Color, width: float, dash_length: int, gap_length: int, max_count: int) -> void:
 	if points.size() < 2:
@@ -490,46 +354,45 @@ func _draw() -> void:
 		if facing_plan.length_squared() > 0.0001:
 			draw_line(ship_screen, ship_screen + facing_plan.normalized() * 30.0, Color(0.75, 1.0, 1.0), 2.0)
 
-	if predicted_ship_points.size() > 1:
+	if solution.ship_points.size() > 1:
 		var ratio: float = clampf(reveal_elapsed / reveal_duration, 0.0, 1.0) if reveal_duration > 0.0 else 1.0
-		var visible_count: int = max(2, int(round((predicted_ship_points.size() - 1) * ratio)) + 1)
-		visible_count = min(visible_count, predicted_ship_points.size())
+		var visible_count: int = max(2, int(round((solution.ship_points.size() - 1) * ratio)) + 1)
+		visible_count = min(visible_count, solution.ship_points.size())
 
 		var ship_pts := PackedVector2Array()
 		for i in range(visible_count):
-			ship_pts.append(_to_screen(predicted_ship_points[i], center))
+			ship_pts.append(_to_screen(solution.ship_points[i], center))
 		draw_polyline(ship_pts, Color(0.6, 1.0, 0.7), 2.0)
 
 		var moon_draw_points: Array[Vector2] = []
 		for i in range(visible_count):
-			moon_draw_points.append(_to_screen(predicted_moon_points[i], center))
+			moon_draw_points.append(_to_screen(solution.moon_points[i], center))
 
 		var ghost_count := visible_count
 		if center_mode == CenterMode.SHIP:
 			ghost_count = min(ghost_count, ship_mode_ghost_trail_steps)
 
-		_draw_dashed_polyline(moon_draw_points, Color(0.0, 0.0, 0.9, 1.0), 1.0, ghost_dash_length, ghost_gap_length, ghost_count)
+		_draw_dashed_polyline(moon_draw_points, Color(0.0, 0.0, 0.9, 1.0), 2.5, ghost_dash_length, ghost_gap_length, ghost_count)
 
 		if not is_revealing:
 			var ca_index: int = 0
 			var best_d: float = INF
 
-			for i in range(predicted_ship_points.size()):
-				var d: float = predicted_ship_points[i].length()
+			for i in range(solution.ship_points.size()):
+				var d: float = solution.ship_points[i].length()
 				if d < best_d:
 					best_d = d
 					ca_index = i
 
-			var ca_screen: Vector2 = _to_screen(predicted_ship_points[ca_index], center)
+			var ca_screen: Vector2 = _to_screen(solution.ship_points[ca_index], center)
 			draw_circle(ca_screen, 4.0, Color(1.0, 0.45, 0.2))
 
-	# PE/AP markers
-	if has_periapsis_marker:
-		var pe_screen := _to_screen(periapsis_marker_world, center)
+	if solution.has_periapsis_marker:
+		var pe_screen := _to_screen(solution.periapsis_marker_world, center)
 		_draw_marker_square(pe_screen, 6.0, Color(0.35, 1.0, 0.35))
 		_draw_marker_label(pe_screen, "PE", Color(0.35, 1.0, 0.35), center.x)
 
-	if has_apoapsis_marker and orbit_classification != "ESCAPE" and orbit_classification != "IMPACT":
-		var ap_screen := _to_screen(apoapsis_marker_world, center)
+	if solution.has_apoapsis_marker and solution.orbit_classification != "ESCAPE" and solution.orbit_classification != "IMPACT":
+		var ap_screen := _to_screen(solution.apoapsis_marker_world, center)
 		_draw_marker_square(ap_screen, 6.0, Color(0.35, 0.75, 1.0))
 		_draw_marker_label(ap_screen, "AP", Color(0.35, 0.75, 1.0), center.x)
