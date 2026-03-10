@@ -4,7 +4,8 @@ enum ActionType {
 	LEVER,
 	THRUST,
 	TRAJECTORY_REFRESH,
-	TRAJECTORY_ZOOM
+	TRAJECTORY_ZOOM,
+	TRAJECTORY_CENTER_CYCLE
 }
 
 enum ButtonMode {
@@ -23,6 +24,9 @@ enum ButtonMode {
 @export var rotation_whir_path: NodePath
 @export var refresh_sound_path: NodePath
 
+@export var zoom_repeat_initial_delay: float = 0.35
+@export var zoom_repeat_interval: float = 0.08
+
 var lever: Node
 var ship: Node
 var trajectory_map: Node
@@ -31,8 +35,32 @@ var shared_button_audio: AudioStreamPlayer3D
 var rotation_whir: Node
 var refresh_sound: Node
 
+var is_held: bool = false
+var repeat_timer: float = 0.0
+var repeat_started: bool = false
+
 func _ready() -> void:
 	_resolve_refs()
+
+func _process(delta: float) -> void:
+	if action_type != ActionType.TRAJECTORY_ZOOM:
+		return
+	if not is_held:
+		return
+	if trajectory_map == null:
+		return
+
+	repeat_timer -= delta
+
+	if not repeat_started:
+		if repeat_timer <= 0.0:
+			repeat_started = true
+			repeat_timer = zoom_repeat_interval
+			_apply_zoom_step(false)
+	else:
+		if repeat_timer <= 0.0:
+			repeat_timer = zoom_repeat_interval
+			_apply_zoom_step(false)
 
 func _resolve_refs() -> void:
 	lever = get_node_or_null(lever_path)
@@ -50,14 +78,28 @@ func _play_shared_button_audio() -> void:
 		return
 	shared_button_audio.play()
 
+func _apply_zoom_step(play_click: bool) -> void:
+	if trajectory_map == null:
+		return
+
+	if play_click:
+		_play_shared_button_audio()
+
+	if mode == ButtonMode.PLUS:
+		if trajectory_map.has_method("zoom_in"):
+			trajectory_map.zoom_in()
+	else:
+		if trajectory_map.has_method("zoom_out"):
+			trajectory_map.zoom_out()
+
 func press() -> void:
 	_resolve_refs()
-	_play_shared_button_audio()
 
 	match action_type:
 		ActionType.LEVER:
+			_play_shared_button_audio()
+
 			if lever == null:
-				push_warning("%s: lever_path is null on press." % name)
 				return
 
 			if rotation_whir != null and rotation_whir.has_method("press_input"):
@@ -66,29 +108,23 @@ func press() -> void:
 			if mode == ButtonMode.PLUS:
 				if lever.has_method("press_plus"):
 					lever.press_plus()
-				else:
-					push_warning("%s: lever has no press_plus()." % name)
 			else:
 				if lever.has_method("press_minus"):
 					lever.press_minus()
-				else:
-					push_warning("%s: lever has no press_minus()." % name)
 
 		ActionType.THRUST:
-			if ship == null:
-				push_warning("%s: ship_path is null on press." % name)
-				return
+			_play_shared_button_audio()
 
+			if ship == null:
+				return
 			if ship.has_method("set_thrust_held"):
 				ship.set_thrust_held(true)
-			else:
-				push_warning("%s: ship has no set_thrust_held()." % name)
 
 		ActionType.TRAJECTORY_REFRESH:
+			_play_shared_button_audio()
+
 			if trajectory_map != null and trajectory_map.has_method("request_refresh"):
 				trajectory_map.request_refresh()
-			else:
-				push_warning("%s: trajectory_map missing request_refresh()." % name)
 
 			if refresh_sound != null and refresh_sound.has_method("start_refresh"):
 				var duration: float = 1.8
@@ -97,20 +133,16 @@ func press() -> void:
 				refresh_sound.start_refresh(duration)
 
 		ActionType.TRAJECTORY_ZOOM:
-			if trajectory_map == null:
-				push_warning("%s: trajectory_map_path is null on press." % name)
-				return
+			is_held = true
+			repeat_started = false
+			repeat_timer = zoom_repeat_initial_delay
+			_apply_zoom_step(true)
 
-			if mode == ButtonMode.PLUS:
-				if trajectory_map.has_method("zoom_in"):
-					trajectory_map.zoom_in()
-				else:
-					push_warning("%s: trajectory_map has no zoom_in()." % name)
-			else:
-				if trajectory_map.has_method("zoom_out"):
-					trajectory_map.zoom_out()
-				else:
-					push_warning("%s: trajectory_map has no zoom_out()." % name)
+		ActionType.TRAJECTORY_CENTER_CYCLE:
+			_play_shared_button_audio()
+
+			if trajectory_map != null and trajectory_map.has_method("cycle_center_mode"):
+				trajectory_map.cycle_center_mode()
 
 func release() -> void:
 	_resolve_refs()
@@ -118,7 +150,6 @@ func release() -> void:
 	match action_type:
 		ActionType.LEVER:
 			if lever == null:
-				push_warning("%s: lever_path is null on release." % name)
 				return
 
 			if rotation_whir != null and rotation_whir.has_method("release_input"):
@@ -127,19 +158,13 @@ func release() -> void:
 			if mode == ButtonMode.PLUS:
 				if lever.has_method("release_plus"):
 					lever.release_plus()
-				else:
-					push_warning("%s: lever has no release_plus()." % name)
 			else:
 				if lever.has_method("release_minus"):
 					lever.release_minus()
-				else:
-					push_warning("%s: lever has no release_minus()." % name)
 
 		ActionType.THRUST:
 			if ship == null:
-				push_warning("%s: ship_path is null on release." % name)
 				return
-
 			if ship.has_method("set_thrust_held"):
 				ship.set_thrust_held(false)
 
@@ -147,4 +172,9 @@ func release() -> void:
 			pass
 
 		ActionType.TRAJECTORY_ZOOM:
+			is_held = false
+			repeat_started = false
+			repeat_timer = 0.0
+
+		ActionType.TRAJECTORY_CENTER_CYCLE:
 			pass

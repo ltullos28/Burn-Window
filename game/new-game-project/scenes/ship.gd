@@ -1,13 +1,13 @@
 extends Node3D
 
 # Translation
-@export var main_thrust: float = 12.0
+@export var main_thrust: float = 0.03
 @export var max_speed: float = 200.0
 @export var damping: float = 0.4
 
 # Rotation
-@export var max_rot_accel: float = 1.8
-@export var angular_drag: float = 0.5
+@export var max_rot_accel: float = 0.20
+@export var angular_drag: float = 0.1
 
 @export var engine_audio_path: NodePath
 
@@ -26,7 +26,6 @@ func _ready() -> void:
 	engine_audio = get_node_or_null(engine_audio_path)
 
 func _physics_process(delta: float) -> void:
-	# ---- TRANSLATION ----
 	if thrust_held:
 		var world_accel: Vector3 = global_transform.basis * Vector3(0.0, 0.0, main_thrust)
 		SimulationState.ship_vel += world_accel * delta
@@ -47,7 +46,6 @@ func _physics_process(delta: float) -> void:
 
 	SimulationState.ship_pos += SimulationState.ship_vel * delta
 
-	# ---- ROTATION ----
 	angular_velocity.x += pitch_control * max_rot_accel * delta
 	angular_velocity.y += yaw_control * max_rot_accel * delta
 	angular_velocity.z += roll_control * max_rot_accel * delta

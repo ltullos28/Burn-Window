@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://c7ryri234qumh"]
 
 [ext_resource type="PackedScene" uid="uid://cjx7wv248tqai" path="res://scenes/player.tscn" id="1_o5qli"]
+[ext_resource type="Texture2D" uid="uid://cu23hksx6b8bu" path="res://scenes/Barren_02-1024x512.png" id="1_pm3ni"]
 [ext_resource type="Script" uid="uid://bl6gkylc5e7nf" path="res://planet_render.gd" id="1_tipki"]
 [ext_resource type="Script" uid="uid://cp6027kqdijr0" path="res://scenes/starfield.gd" id="2_0wfyh"]
 [ext_resource type="Script" uid="uid://c2ai8g2j2eetg" path="res://scenes/ship.gd" id="2_sugp2"]
@@ -20,9 +21,12 @@
 [ext_resource type="Script" uid="uid://dnt5njq8bjdwg" path="res://engine_audio.gd" id="18_gqmmt"]
 [ext_resource type="AudioStream" uid="uid://b01omr80sc68k" path="res://scenes/freesound_community-large-rocket-engine-86240.mp3" id="19_yc10j"]
 [ext_resource type="AudioStream" uid="uid://ck5tk6bm4vwo8" path="res://scenes/freesound_community-rattelingmetalshelves-76404.mp3" id="20_jscy8"]
+[ext_resource type="Script" uid="uid://6q3ws3wgu2wh" path="res://moon_render.gd" id="21_yc10j"]
+[ext_resource type="Texture2D" uid="uid://fr8y1ic0uve5" path="res://scenes/Dusty_02-1024x512.png" id="23_y6deb"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jyhfs"]
 albedo_color = Color(0.8823829, 0.82665706, 0.76737565, 1)
+albedo_texture = ExtResource("1_pm3ni")
 emission = Color(0.88235295, 0.827451, 0.76862746, 1)
 emission_energy_multiplier = 0.0
 
@@ -152,16 +156,29 @@ size = Vector2(3.3, 2)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dp3eg"]
 albedo_color = Color(0, 0, 0, 1)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yc10j"]
+albedo_color = Color(0.98039216, 0.8509804, 0, 1)
+emission_enabled = true
+emission = Color(0.98039216, 0.8509804, 0, 1)
+emission_energy_multiplier = 1.75
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jkv2x"]
 albedo_color = Color(0, 0, 0, 1)
 
 [sub_resource type="QuadMesh" id="QuadMesh_jbj1t"]
-size = Vector2(2, 3)
+size = Vector2(1.75, 3.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jscy8"]
+albedo_texture = ExtResource("23_y6deb")
+
+[sub_resource type="SphereMesh" id="SphereMesh_pm3ni"]
+radius = 45.0
+height = 90.0
 
 [node name="Main" type="Node3D" unique_id=1363539468]
 
 [node name="Planet" type="MeshInstance3D" parent="." unique_id=1363273613]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 900)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.826843, 40, 3689.17)
 layers = 2
 material_override = SubResource("StandardMaterial3D_jyhfs")
 mesh = SubResource("SphereMesh_0wfyh")
@@ -356,6 +373,8 @@ trajectory_map_path = NodePath("")
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="MinusInteract" parent="Ship/LeverPad/PitchLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(1134752273, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
@@ -367,6 +386,8 @@ trajectory_map_path = NodePath("")
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="Label" type="Label3D" parent="Ship/LeverPad/PitchLever" unique_id=627392537]
 transform = Transform3D(3.9402128e-08, 0.99555916, -0.09414324, 3.9209986e-09, 0.09414327, 0.99555886, 0.99999976, -3.959625e-08, -1.9413982e-10, -0.684628, -0.014260411, 2.9802322e-07)
@@ -388,6 +409,8 @@ trajectory_map_path = NodePath("")
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="MinusInteract" parent="Ship/LeverPad/YawLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(1546800821, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
@@ -399,6 +422,8 @@ trajectory_map_path = NodePath("")
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="Label2" type="Label3D" parent="Ship/LeverPad/YawLever" unique_id=532953614]
 transform = Transform3D(3.940213e-08, 0.9955592, -0.09414327, 3.921004e-09, 0.0941433, 0.99555904, 0.9999999, -3.959625e-08, -1.9413404e-10, -0.684628, -0.01426065, -0.00210327)
@@ -420,6 +445,8 @@ trajectory_map_path = NodePath("")
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="MinusInteract" parent="Ship/LeverPad/RollLever/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(419383447, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
@@ -432,6 +459,8 @@ trajectory_map_path = NodePath("")
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("../../../../../../Player/WhirringPlayer3D")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="Label3" type="Label3D" parent="Ship/LeverPad/RollLever" unique_id=2102518387]
 transform = Transform3D(3.940214e-08, 0.99555933, -0.09414336, 3.9210115e-09, 0.09414333, 0.9955591, 1, -3.959625e-08, -1.9413182e-10, -0.6846279, -0.01426065, -0.003497064)
@@ -483,12 +512,13 @@ mesh = SubResource("TorusMesh_a8y0u")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2317543, -4.8966947)
 
 [node name="ScreenBacking" type="MeshInstance3D" parent="Ship/Plotter" unique_id=397927819]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.04342842)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.0082912445)
 mesh = SubResource("QuadMesh_muem4")
 surface_material_override/0 = SubResource("StandardMaterial3D_dp3eg")
 
 [node name="TrajectoryDisplay" type="Sprite3D" parent="Ship/Plotter" unique_id=1081671706]
-transform = Transform3D(-0.99999994, 0, -8.742277e-08, 0, 1, 0, 8.742277e-08, 0, -0.99999994, 0, 0, 0.12520933)
+transform = Transform3D(-0.99999994, 0, -8.742277e-08, 0, 1, 0, 8.742277e-08, 0, -0.99999994, 0, 0, 0.031734943)
+flip_h = true
 pixel_size = 0.003
 script = ExtResource("16_jbj1t")
 viewport_path = NodePath("../TrajectoryViewport")
@@ -505,11 +535,11 @@ offset_bottom = 40.0
 script = ExtResource("8_a8y0u")
 
 [node name="RefreshPad" type="MeshInstance3D" parent="Ship/Plotter" unique_id=1499264343]
-transform = Transform3D(-0.99999994, 8.742277e-08, 0, 3.8213705e-15, 4.3711385e-08, -0.99999994, -8.742277e-08, -0.99999994, -4.3711385e-08, -2.1727533, 0.018245697, -0.0033054352)
+transform = Transform3D(-0.99999994, 8.742277e-08, 0, 3.8213705e-15, 4.3711385e-08, -0.99999994, -8.742277e-08, -0.99999994, -4.3711385e-08, -2.1727533, 0.48760486, -0.0033054352)
 mesh = SubResource("BoxMesh_jbj1t")
 
 [node name="ButtonRefresh" type="MeshInstance3D" parent="Ship/Plotter/RefreshPad" unique_id=228579103]
-transform = Transform3D(6.556709e-08, 6.556707e-08, -1.5, -2.2649371e-07, -1.5, -6.556708e-08, -1.5, 2.2649371e-07, -6.556708e-08, 0, -0.104, -0.18)
+transform = Transform3D(6.556709e-08, 6.556708e-08, -1.5, -2.2649373e-07, -1.5, -6.556708e-08, -1.5, 2.2649371e-07, -6.556708e-08, 0, -0.10400009, -0.12417722)
 material_override = ExtResource("11_ya4ey")
 mesh = SubResource("TorusMesh_jxk16")
 
@@ -534,6 +564,36 @@ text = "Refresh
 "
 font_size = 28
 
+[node name="CenterModePad" type="MeshInstance3D" parent="Ship/Plotter" unique_id=1272502163]
+transform = Transform3D(-0.99999994, 8.742277e-08, 0, 3.8213705e-15, 4.3711385e-08, -0.99999994, -8.742277e-08, -0.99999994, -4.3711385e-08, -2.1558003, -0.5827528, -0.0033054352)
+mesh = SubResource("BoxMesh_jbj1t")
+
+[node name="ButtonCenter" type="MeshInstance3D" parent="Ship/Plotter/CenterModePad" unique_id=567107589]
+transform = Transform3D(6.556709e-08, 6.556707e-08, -1.5, -2.2649371e-07, -1.5, -6.556708e-08, -1.5, 2.2649371e-07, -6.556708e-08, 0, -0.104, -0.18)
+material_override = ExtResource("11_ya4ey")
+mesh = SubResource("TorusMesh_jxk16")
+
+[node name="YellowButton" type="MeshInstance3D" parent="Ship/Plotter/CenterModePad/ButtonCenter" unique_id=1553018577]
+material_override = SubResource("StandardMaterial3D_yc10j")
+mesh = SubResource("SphereMesh_t5pcx")
+
+[node name="ModeInteract" type="Area3D" parent="Ship/Plotter/CenterModePad/ButtonCenter/YellowButton" unique_id=1121906117]
+script = ExtResource("10_choun")
+action_type = 4
+ship_path = NodePath("../../../../..")
+trajectory_map_path = NodePath("../../../../TrajectoryViewport/TrajectoryMap")
+shared_button_audio_path = NodePath("../../../../../Player/SharedButtonClick3D")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ship/Plotter/CenterModePad/ButtonCenter/YellowButton/ModeInteract" unique_id=1242563966]
+shape = SubResource("SphereShape3D_8di2w")
+
+[node name="Label4" type="Label3D" parent="Ship/Plotter/CenterModePad" unique_id=1813452320]
+transform = Transform3D(-1, -8.742287e-08, 0, -3.821371e-15, 4.3711434e-08, -1.0000005, 8.742278e-08, -1.0000011, -4.371141e-08, 0, -0.10799801, 0.20580983)
+modulate = Color(0.6189163, 0.98897666, 0.5400536, 1)
+text = "Origin
+"
+font_size = 28
+
 [node name="ZoomPad" parent="Ship/Plotter" unique_id=269794603 instance=ExtResource("9_85g3d")]
 transform = Transform3D(1.9106853e-15, 4.3711378e-08, 0.9999999, 0.99999994, -4.3711378e-08, 0, 4.3711385e-08, 0.99999976, -4.3711385e-08, 2.041545, 0, 0.040513992)
 axis = 1
@@ -550,6 +610,8 @@ trajectory_map_path = NodePath("../../../../../TrajectoryViewport/TrajectoryMap"
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="MinusInteract" parent="Ship/Plotter/ZoomPad/BaseMesh/ButtonMinus/RedButton" parent_id_path=PackedInt32Array(269794603, 751139414) index="0" unique_id=1686558501]
 collision_layer = 1
@@ -562,6 +624,8 @@ trajectory_map_path = NodePath("../../../../../TrajectoryViewport/TrajectoryMap"
 shared_button_audio_path = NodePath("../../../../../../Player/SharedButtonClick3D")
 rotation_whir_path = NodePath("")
 refresh_sound_path = NodePath("")
+zoom_repeat_initial_delay = 0.35
+zoom_repeat_interval = 0.08
 
 [node name="Label2" type="Label3D" parent="Ship/Plotter/ZoomPad" unique_id=812113934]
 transform = Transform3D(3.940213e-08, 0.9955592, -0.09414327, 3.921004e-09, 0.0941433, 0.99555904, 0.9999999, -3.959625e-08, -1.9413404e-10, -0.684628, -0.01426065, -0.00210327)
@@ -573,11 +637,13 @@ text = "Zoom
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6416924, 0, 0.21661377)
 
 [node name="ScreenBackingInfo" type="MeshInstance3D" parent="Ship/Plotter/InfoScreen" unique_id=2129565755]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.18960714, 0, 0)
 material_override = SubResource("StandardMaterial3D_jkv2x")
 mesh = SubResource("QuadMesh_jbj1t")
 
 [node name="InfoLabel3D" type="Label3D" parent="Ship/Plotter/InfoScreen/ScreenBackingInfo" unique_id=1707348103]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.035649776)
+font_size = 14
 script = ExtResource("14_jkv2x")
 trajectory_map_path = NodePath("../../../TrajectoryViewport/TrajectoryMap")
 
@@ -627,6 +693,15 @@ panning_strength = 1.9
 stream = ExtResource("20_jscy8")
 volume_db = 11.963
 max_distance = 191.4
+
+[node name="MoonVisual" type="Node3D" parent="." unique_id=1103344047]
+script = ExtResource("21_yc10j")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="MoonVisual" unique_id=744146069]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 207.87, 0, 0)
+layers = 2
+material_override = SubResource("StandardMaterial3D_jscy8")
+mesh = SubResource("SphereMesh_pm3ni")
 
 [editable path="Ship/Player"]
 [editable path="Ship/LeverPad/PitchLever"]
