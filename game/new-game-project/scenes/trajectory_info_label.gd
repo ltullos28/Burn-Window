@@ -13,6 +13,7 @@ func _process(_delta: float) -> void:
 		return
 
 	var status: String = _call_or_default("get_status_text", "NO DATA")
+	var display_mode: String = _call_or_default("get_display_mode_text", "TRAJECTORY")
 	var reference_body: String = _call_or_default("get_reference_body_text", "PLANET")
 	var center_mode: String = _call_or_default("get_center_mode_text", "PLANET")
 	var classification: String = _call_or_default("get_classification", "UNRESOLVED")
@@ -39,6 +40,7 @@ func _process(_delta: float) -> void:
 
 	text = _build_readout(
 		status,
+		display_mode,
 		reference_body,
 		center_mode,
 		classification,
@@ -104,6 +106,7 @@ func _fmt_zoom(value: float) -> String:
 
 func _build_readout(
 	status: String,
+	display_mode: String,
 	reference_body: String,
 	center_mode: String,
 	classification: String,
@@ -128,6 +131,7 @@ func _build_readout(
 	lines.append("FLIGHT COMPUTER")
 	lines.append("----------------")
 	lines.append("STATUS   " + status)
+	lines.append("VIEW     " + display_mode)
 	lines.append("REF      " + reference_body)
 	lines.append("CENTER   " + center_mode)
 	lines.append("")

@@ -12,7 +12,9 @@ func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector
 		"periapsis_marker_world": Vector2.ZERO,
 		"apoapsis_marker_world": Vector2.ZERO,
 		"has_periapsis_marker": false,
-		"has_apoapsis_marker": false
+		"has_apoapsis_marker": false,
+		"is_bound_orbit": false,
+		"specific_energy": 0.0
 	}
 
 	var rel: Vector3 = ship_pos - planet_pos
@@ -26,6 +28,8 @@ func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector
 		return result
 
 	var specific_energy: float = 0.5 * v2 - mu / r
+	result["specific_energy"] = specific_energy
+
 	var h: Vector3 = rel.cross(vel)
 	var e_vec: Vector3 = vel.cross(h) / mu - rel.normalized()
 	var e: float = e_vec.length()
@@ -33,6 +37,8 @@ func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector
 	result["eccentricity_value"] = e
 
 	if specific_energy < 0.0:
+		result["is_bound_orbit"] = true
+
 		var a: float = -mu / (2.0 * specific_energy)
 		result["semi_major_axis_value"] = a
 
@@ -68,6 +74,7 @@ func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector
 		result["apoapsis_distance"] = -1.0
 		result["semi_major_axis_value"] = -1.0
 		result["orbital_period_value"] = -1.0
+		result["is_bound_orbit"] = false
 		result["orbit_classification"] = "ESCAPE"
 
 	return result

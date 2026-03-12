@@ -5,7 +5,8 @@ enum ActionType {
 	THRUST,
 	TRAJECTORY_REFRESH,
 	TRAJECTORY_ZOOM,
-	TRAJECTORY_CENTER_CYCLE
+	TRAJECTORY_CENTER_CYCLE,
+	TRAJECTORY_DISPLAY_MODE_CYCLE
 }
 
 enum ButtonMode {
@@ -143,7 +144,13 @@ func press() -> void:
 
 			if trajectory_map != null and trajectory_map.has_method("cycle_center_mode"):
 				trajectory_map.cycle_center_mode()
+				
+		ActionType.TRAJECTORY_DISPLAY_MODE_CYCLE:
+			_play_shared_button_audio()
 
+			if trajectory_map != null and trajectory_map.has_method("cycle_display_mode"):
+				trajectory_map.cycle_display_mode()
+				
 func release() -> void:
 	_resolve_refs()
 
@@ -170,7 +177,10 @@ func release() -> void:
 
 		ActionType.TRAJECTORY_REFRESH:
 			pass
-
+			
+		ActionType.TRAJECTORY_DISPLAY_MODE_CYCLE:
+			pass
+			
 		ActionType.TRAJECTORY_ZOOM:
 			is_held = false
 			repeat_started = false

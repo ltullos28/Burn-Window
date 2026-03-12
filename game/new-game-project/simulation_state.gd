@@ -17,6 +17,8 @@ extends Node
 @export var moon_orbit_phase: float = 0.0
 
 @export var celestial_time_scale: float = 1.0
+@export var planet_up: Vector3 = Vector3.UP
+@export var moon_up: Vector3 = Vector3.UP
 
 # Derived values
 var planet_mu: float = 0.0
@@ -37,6 +39,10 @@ var moon_pos: Vector3 = Vector3.ZERO
 var moon_vel: Vector3 = Vector3.ZERO
 
 var sim_time: float = 0.0
+
+# Temporary Warp
+var warp_levels := [1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0]
+var warp_index := 0
 
 func _ready() -> void:
 	_recompute_body_constants()
@@ -61,11 +67,12 @@ func reset() -> void:
 	planet_pos = Vector3(0.0, 40.0, 700.0)
 	planet_vel = Vector3.ZERO
 
-	# Start ship already in a circular prograde orbit around the planet
-	# Orbit radius = 900 from planet center
-	# Circular speed for current gravity setup ~= 4.216
+	# Start ship in a circular POLAR orbit around the planet
+	# Position stays on +X side of planet
+	# Velocity goes in +Y so the orbit plane becomes X-Y
+
 	ship_pos = planet_pos + Vector3(900.0, 0.0, 0.0)
-	ship_vel = Vector3(0.0, 0.0, 4.216)
+	ship_vel = Vector3(0.0, 2.9811626, 2.9811626)
 
 	sim_time = 0.0
 	_update_moon_state()
@@ -103,3 +110,12 @@ func _gravity_from_body(position: Vector3, body_pos: Vector3, mu: float) -> Vect
 		distance = min_gravity_distance
 
 	return offset * mu / pow(distance, 3.0)
+func increase_warp():
+	warp_index = min(warp_index + 1, warp_levels.size() - 1)
+	celestial_time_scale = warp_levels[warp_index]
+	print("Time Warp:", celestial_time_scale, "x")
+
+func decrease_warp():
+	warp_index = max(warp_index - 1, 0)
+	celestial_time_scale = warp_levels[warp_index]
+	print("Time Warp:", celestial_time_scale, "x")
