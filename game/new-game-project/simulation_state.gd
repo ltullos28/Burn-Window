@@ -72,7 +72,7 @@ func reset() -> void:
 	# Velocity goes in +Y so the orbit plane becomes X-Y
 
 	ship_pos = planet_pos + Vector3(900.0, 0.0, 0.0)
-	ship_vel = Vector3(0.0, 2.9811626, 2.9811626)
+	ship_vel = Vector3(0.0, 0.0, 4.216)
 
 	sim_time = 0.0
 	_update_moon_state()

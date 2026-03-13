@@ -528,6 +528,7 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	var inst_center: Vector2 = center
 
 	var outer_radius: float = side * 0.43
+	
 	var line_half: float = outer_radius
 	var body_radius_px: float = side * 0.085
 
@@ -547,12 +548,22 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 
 	var r: Vector3 = SimulationState.ship_pos - body_pos
 	var v: Vector3 = SimulationState.ship_vel - body_vel
-	var h: Vector3 = r.cross(v)
+	var h: Vector3 = v.cross(r)
 
 	var font := ThemeDB.fallback_font
 	var font_size := 14
-	var big_font_size := 14
-
+	var big_font_size := 30
+	var title_text: String = "EQUATOR"
+	var title_size: Vector2 = font.get_string_size(title_text, HORIZONTAL_ALIGNMENT_LEFT, -1, big_font_size)
+	draw_string(
+		font,
+		Vector2(inst_center.x - title_size.x * 0.5, 36.0),
+		title_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		big_font_size,
+		Color(0.35, 1.0, 0.35)
+	)
 	# Outer circle
 	draw_arc(inst_center, outer_radius, 0.0, TAU, 128, outer_circle_color, 2.0)
 
@@ -577,11 +588,10 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	if r.length_squared() < 0.0001 or v.length_squared() < 0.0001 or h.length_squared() < 0.0001:
 		var reference_text_empty: String = "Reference: " + get_reference_body_text().capitalize()
 		var ref_size_empty: Vector2 = font.get_string_size(reference_text_empty, HORIZONTAL_ALIGNMENT_LEFT, -1, big_font_size)
-
 		draw_string(
 			font,
-			Vector2(28.0, rect_size.y - 28.0),
-			"Ascending...",
+			Vector2(60.0, rect_size.y - 28.0),
+			"ASCENDING...",
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			big_font_size,
@@ -590,7 +600,7 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 
 		draw_string(
 			font,
-			Vector2(rect_size.x - ref_size_empty.x - 28.0, rect_size.y - 28.0),
+			Vector2(rect_size.x - ref_size_empty.x - 60.0, rect_size.y - 28.0),
 			reference_text_empty,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
@@ -632,20 +642,25 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	if u < 0.0:
 		u += TAU
 
+	var vertical_rate: float = v.dot(body_up)
+
 	var active_node_label: String = "AN"
 	var motion_text: String = "Ascending..."
-	var ship_marker: Vector2 = inst_center
-
-	if u < PI:
-		active_node_label = "AN"
-		motion_text = "Ascending..."
-		var progress_from_an: float = u / PI
-		ship_marker = inst_center + plane_dir * (progress_from_an * (outer_radius - 12.0))
-	else:
+	if vertical_rate < 0.0:
 		active_node_label = "DN"
-		motion_text = "Descending..."
-		var progress_from_dn: float = (u - PI) / PI
-		ship_marker = inst_center - plane_dir * (progress_from_dn * (outer_radius - 12.0))
+		motion_text = "DESCENDING..."
+
+	var flat_threshold_deg: float = 0.5
+	var is_flat: bool = inc_display_deg < flat_threshold_deg
+	if is_flat:
+		motion_text = "FLAT"
+
+	var handedness: float = sign(h.dot(body_up))
+	if abs(handedness) < 0.001:
+		handedness = 1.0
+
+	var line_displacement: float = sin(u) * handedness * (outer_radius - 12.0)
+	var ship_marker: Vector2 = inst_center + plane_dir * line_displacement
 
 	# Center node marker and readable label
 	draw_circle(inst_center, 4.5, node_color)
@@ -689,7 +704,7 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	# Bottom left status text
 	draw_string(
 		font,
-		Vector2(28.0, rect_size.y - 28.0),
+		Vector2(60.0, rect_size.y - 28.0),
 		motion_text,
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
@@ -702,7 +717,7 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	var ref_size: Vector2 = font.get_string_size(reference_text, HORIZONTAL_ALIGNMENT_LEFT, -1, big_font_size)
 	draw_string(
 		font,
-		Vector2(rect_size.x - ref_size.x - 28.0, rect_size.y - 28.0),
+		Vector2(rect_size.x - ref_size.x - 60.0, rect_size.y - 28.0),
 		reference_text,
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
@@ -713,13 +728,26 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 func _draw() -> void:
 	var rect_size: Vector2 = get_viewport_rect().size
 	var center: Vector2 = rect_size * 0.5
-
+	var font := ThemeDB.fallback_font
+	var big_font_size := 30
+	var text_green := Color(0.35, 1.0, 0.35)
+	
 	draw_rect(Rect2(Vector2.ZERO, rect_size), Color(0.02, 0.04, 0.02), true)
 
 	if display_mode == DisplayMode.INCLINATION:
 		_draw_inclination_instrument(rect_size, center)
 		return
-
+	var plan_title: String = "PLAN"
+	var plan_title_size: Vector2 = font.get_string_size(plan_title, HORIZONTAL_ALIGNMENT_LEFT, -1, big_font_size)
+	draw_string(
+		font,
+		Vector2(center.x - plan_title_size.x * 0.5, 46.0),
+		plan_title,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		big_font_size,
+		text_green
+	)
 	draw_line(Vector2(center.x, 0.0), Vector2(center.x, rect_size.y), Color(0.05, 0.12, 0.05), 1.0)
 	draw_line(Vector2(0.0, center.y), Vector2(rect_size.x, center.y), Color(0.05, 0.12, 0.05), 1.0)
 
@@ -744,6 +772,49 @@ func _draw() -> void:
 	var ship_rel_planet: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
 	var ship_screen := _to_screen(ship_rel_planet, center)
 
+	var r3: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
+	var v3: Vector3 = SimulationState.ship_vel
+	var body_up: Vector3 = SimulationState.planet_up.normalized()
+
+	var vel: float = v3.length()
+	var vel_text: String = "VEL: %.3f NU/s" % vel
+
+	var radius: float = r3.length()
+	var r_text: String = "ALT: %.3f NU" % radius
+
+	var h3: Vector3 = r3.cross(v3)
+	var inc: float = 0.0
+	if h3.length_squared() > 0.0001:
+		inc = rad_to_deg(acos(clamp(h3.normalized().dot(body_up), -1.0, 1.0)))
+
+	var inc_text: String = "INC: %.2f°" % inc
+	draw_string(
+		font,
+		Vector2(60.0, rect_size.y - 30.0),
+		inc_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		big_font_size - 6,
+		text_green
+	)
+	draw_string(
+		font,
+		Vector2(60.0, rect_size.y - 60.0),
+		r_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		big_font_size - 6,
+		text_green
+	)
+	draw_string(
+		font,
+		Vector2(60.0, rect_size.y - 90.0),
+		vel_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		big_font_size - 6,
+		text_green
+	)
 	draw_circle(ship_screen, 4.0, Color.WHITE)
 
 	var vel_world: Vector3 = SimulationState.ship_vel

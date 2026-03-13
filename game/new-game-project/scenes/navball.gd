@@ -1,8 +1,9 @@
 extends Node3D
 
 @export var ship_path: NodePath
-@export var ball_path: NodePath
+@export var ball_root_path: NodePath
 @export var ball_skin_path: NodePath
+@export var marker_root_path: NodePath
 
 @export var prograde_path: NodePath
 @export var retrograde_path: NodePath
@@ -16,12 +17,13 @@ extends Node3D
 @export var min_speed_to_show: float = 0.05
 @export var inward_offset: float = 0.0
 
-# This rotates ONLY the visible sphere/texture, not the marker math.
+# Visual-only offset for the sphere texture/orientation
 @export var skin_rotation_offset_degrees: Vector3 = Vector3.ZERO
 
 var ship: Node3D
-var ball: Node3D
+var ball_root: Node3D
 var ball_skin: Node3D
+var marker_root: Node3D
 
 var prograde_marker: Node3D
 var retrograde_marker: Node3D
@@ -34,8 +36,9 @@ var nose_marker: Node3D
 
 func _ready() -> void:
 	ship = get_node_or_null(ship_path) as Node3D
-	ball = get_node_or_null(ball_path) as Node3D
+	ball_root = get_node_or_null(ball_root_path) as Node3D
 	ball_skin = get_node_or_null(ball_skin_path) as Node3D
+	marker_root = get_node_or_null(marker_root_path) as Node3D
 
 	prograde_marker = get_node_or_null(prograde_path) as Node3D
 	retrograde_marker = get_node_or_null(retrograde_path) as Node3D
@@ -49,7 +52,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	if ship == null or ball == null:
+	if ship == null or ball_root == null or marker_root == null:
 		return
 
 	_update_ball_orientation()
@@ -61,44 +64,36 @@ func _process(_delta: float) -> void:
 	update_nose_marker()
 
 
+# ----------------------------
+# BALL ROTATION
+# ----------------------------
+
+
 func _update_ball_orientation() -> void:
 	var ship_basis: Basis = ship.global_transform.basis.orthonormalized()
 
-	# Godot returns:
-	# x = pitch
-	# y = yaw
-	# z = roll
-	var ship_euler: Vector3 = ship_basis.get_euler(EULER_ORDER_YXZ)
-
-	var ship_pitch: float = ship_euler.x
-	var ship_yaw: float = ship_euler.y
-	var ship_roll: float = ship_euler.z
-
-	# Desired navball convention:
-	# X = roll
-	# Y = yaw
-	# Z = pitch
-	#
-	# Negative signs because the ball counter-rotates against the ship.
-	var navball_euler: Vector3 = Vector3(
-		-ship_roll,
-		-ship_yaw,
-		-ship_pitch
-	)
-
-	ball.rotation = navball_euler
-
+	var current_scale: Vector3 = ball_root.transform.basis.get_scale()
+	ball_root.transform.basis = ship_basis.inverse().scaled(current_scale)
 
 func _apply_skin_rotation_offset() -> void:
 	if ball_skin == null:
 		return
-
 	ball_skin.rotation_degrees = skin_rotation_offset_degrees
 
 
-func _ball_inverse_basis() -> Basis:
-	return ball.global_transform.basis.orthonormalized().inverse()
+# ----------------------------
+# STABLE SHIP-LOCAL FRAME
+# ----------------------------
 
+func _world_to_ship_local_dir(world_dir: Vector3) -> Vector3:
+	if ship == null:
+		return Vector3.ZERO
+	return (ship.global_transform.basis.orthonormalized().inverse() * world_dir).normalized()
+
+
+# ----------------------------
+# MARKER UPDATES
+# ----------------------------
 
 func update_prograde_and_retrograde() -> void:
 	if prograde_marker == null or retrograde_marker == null:
@@ -115,11 +110,10 @@ func update_prograde_and_retrograde() -> void:
 	prograde_marker.visible = true
 	retrograde_marker.visible = true
 
-	var world_dir: Vector3 = vel.normalized()
-	var local_dir: Vector3 = (_ball_inverse_basis() * world_dir).normalized()
+	var ship_local_dir: Vector3 = _world_to_ship_local_dir(vel.normalized())
 
-	place_marker(prograde_marker, local_dir)
-	place_marker(retrograde_marker, -local_dir)
+	place_marker(prograde_marker, ship_local_dir)
+	place_marker(retrograde_marker, -ship_local_dir)
 
 
 func update_radial_markers() -> void:
@@ -140,10 +134,10 @@ func update_radial_markers() -> void:
 	radial_in_marker.visible = true
 	radial_out_marker.visible = true
 
-	var radial_in_local: Vector3 = (_ball_inverse_basis() * to_planet_world.normalized()).normalized()
+	var ship_local_dir: Vector3 = _world_to_ship_local_dir(to_planet_world.normalized())
 
-	place_marker(radial_in_marker, radial_in_local)
-	place_marker(radial_out_marker, -radial_in_local)
+	place_marker(radial_in_marker, ship_local_dir)
+	place_marker(radial_out_marker, -ship_local_dir)
 
 
 func update_normal_markers() -> void:
@@ -172,10 +166,10 @@ func update_normal_markers() -> void:
 	normal_marker.visible = true
 	anti_normal_marker.visible = true
 
-	var normal_local: Vector3 = (_ball_inverse_basis() * orbit_normal_world.normalized()).normalized()
+	var ship_local_dir: Vector3 = _world_to_ship_local_dir(orbit_normal_world.normalized())
 
-	place_marker(normal_marker, normal_local)
-	place_marker(anti_normal_marker, -normal_local)
+	place_marker(normal_marker, ship_local_dir)
+	place_marker(anti_normal_marker, -ship_local_dir)
 
 
 func update_nose_marker() -> void:
@@ -184,18 +178,27 @@ func update_nose_marker() -> void:
 
 	nose_marker.visible = true
 
-	# Godot forward is usually -Z.
-	var world_dir: Vector3 = (ship.global_transform.basis.z).normalized()
-	var local_dir: Vector3 = (_ball_inverse_basis() * world_dir).normalized()
+	# In this project, ship forward / thrust direction is +Z
+	var nose_world_dir: Vector3 = ship.global_transform.basis.z.normalized()
+	var ship_local_dir: Vector3 = _world_to_ship_local_dir(nose_world_dir)
 
-	place_marker(nose_marker, local_dir)
+	place_marker(nose_marker, ship_local_dir)
 
 
-func place_marker(marker: Node3D, local_dir: Vector3) -> void:
-	var inward: Vector3 = -local_dir.normalized()
+# ----------------------------
+# MARKER PLACEMENT
+# ----------------------------
 
-	marker.position = local_dir * marker_radius + inward * inward_offset
-	orient_marker_inward(marker, local_dir)
+func place_marker(marker: Node3D, ship_local_dir: Vector3) -> void:
+	if marker_root == null:
+		return
+
+	var dir: Vector3 = ship_local_dir.normalized()
+	var inward: Vector3 = -dir
+
+	# Markers live under MarkerRoot, not BallRoot, so they do not inherit ball rotation.
+	marker.position = dir * marker_radius + inward * inward_offset
+	orient_marker_inward(marker, dir)
 
 
 func orient_marker_inward(marker: Node3D, local_dir: Vector3) -> void:
@@ -208,5 +211,4 @@ func orient_marker_inward(marker: Node3D, local_dir: Vector3) -> void:
 	var right: Vector3 = up.cross(inward).normalized()
 	var corrected_up: Vector3 = inward.cross(right).normalized()
 
-	var marker_basis: Basis = Basis(right, -inward, corrected_up)
-	marker.transform.basis = marker_basis
+	marker.transform.basis = Basis(right, -inward, corrected_up)

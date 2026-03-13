@@ -11,11 +11,15 @@ extends Node3D
 @export var min_rattle_wait: float = 0.35
 @export var max_rattle_wait: float = 1.25
 
+# Skip the startup portion after the first full play
+@export var loop_restart_seconds: float = 1.0
+
 var engine_loop_player: AudioStreamPlayer3D
 var rattle_player: AudioStreamPlayer3D
 
 var thrust_active: bool = false
 var rattle_timer: float = 0.0
+
 
 func _ready() -> void:
 	randomize()
@@ -25,11 +29,14 @@ func _ready() -> void:
 
 	if engine_loop_player != null:
 		engine_loop_player.volume_db = engine_volume_db
+		if not engine_loop_player.finished.is_connected(_on_engine_loop_finished):
+			engine_loop_player.finished.connect(_on_engine_loop_finished)
 
 	if rattle_player != null:
 		rattle_player.volume_db = rattle_volume_db
 
 	_schedule_next_rattle()
+
 
 func _process(delta: float) -> void:
 	if not thrust_active:
@@ -40,6 +47,7 @@ func _process(delta: float) -> void:
 		_play_rattle()
 		_schedule_next_rattle()
 
+
 func set_thrust_audio_active(active: bool) -> void:
 	if thrust_active == active:
 		return
@@ -47,15 +55,29 @@ func set_thrust_audio_active(active: bool) -> void:
 	thrust_active = active
 
 	if thrust_active:
-		if engine_loop_player != null and engine_loop_player.stream != null and not engine_loop_player.playing:
-			engine_loop_player.play()
+		if engine_loop_player != null and engine_loop_player.stream != null:
+			# First time: play from the real start
+			if not engine_loop_player.playing:
+				engine_loop_player.play(0.0)
 		_schedule_next_rattle()
 	else:
 		if engine_loop_player != null and engine_loop_player.playing:
 			engine_loop_player.stop()
 
+
+func _on_engine_loop_finished() -> void:
+	if not thrust_active:
+		return
+	if engine_loop_player == null or engine_loop_player.stream == null:
+		return
+
+	# After the first pass, skip the startup transient
+	engine_loop_player.play(loop_restart_seconds)
+
+
 func _schedule_next_rattle() -> void:
 	rattle_timer = randf_range(min_rattle_wait, max_rattle_wait)
+
 
 func _play_rattle() -> void:
 	if rattle_player == null:

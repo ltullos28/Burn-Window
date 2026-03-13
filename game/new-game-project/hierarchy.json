@@ -56,7 +56,14 @@
 									"name": "NavballMesh",
 									"script": "",
 									"type": "MeshInstance3D"
-								},
+								}
+							],
+							"name": "NavballBall",
+							"script": "",
+							"type": "Node3D"
+						},
+						{
+							"children": [
 								{
 									"children": [
 										{
@@ -128,7 +135,7 @@
 									"type": "MeshInstance3D"
 								}
 							],
-							"name": "NavballBall",
+							"name": "MarkerMaster",
 							"script": "",
 							"type": "Node3D"
 						}
@@ -168,7 +175,7 @@
 							"children": [],
 							"name": "AmbiencePlayer3D",
 							"script": "res://ambient_loop.gd",
-							"type": "AudioStreamPlayer3D"
+							"type": "AudioStreamPlayer"
 						},
 						{
 							"children": [],
@@ -186,7 +193,7 @@
 							"children": [],
 							"name": "WhirringPlayer3D",
 							"script": "",
-							"type": "AudioStreamPlayer3D"
+							"type": "AudioStreamPlayer"
 						}
 					],
 					"name": "Player",
@@ -517,7 +524,21 @@
 				{
 					"children": [
 						{
-							"children": [],
+							"children": [
+								{
+									"children": [
+										{
+											"children": [],
+											"name": "CSGBox3D",
+											"script": "",
+											"type": "CSGBox3D"
+										}
+									],
+									"name": "CSGCylinder3D",
+									"script": "",
+									"type": "CSGCylinder3D"
+								}
+							],
 							"name": "CSGCylinder3D",
 							"script": "",
 							"type": "CSGCylinder3D"
@@ -527,12 +548,6 @@
 								{
 									"children": [],
 									"name": "computer",
-									"script": "",
-									"type": "MeshInstance3D"
-								},
-								{
-									"children": [],
-									"name": "powerSwitch",
 									"script": "",
 									"type": "MeshInstance3D"
 								},
@@ -556,7 +571,27 @@
 									"type": "Sprite3D"
 								},
 								{
-									"children": [],
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "CollisionShape3D",
+													"script": "",
+													"type": "CollisionShape3D"
+												}
+											],
+											"name": "ScreenInteract",
+											"script": "res://scenes/screen_highlight.gd",
+											"type": "Area3D"
+										},
+										{
+											"children": [],
+											"name": "ScreenZoomTarget",
+											"script": "",
+											"type": "Node3D"
+										}
+									],
 									"name": "CRTScreen",
 									"script": "",
 									"type": "MeshInstance3D"
@@ -571,6 +606,25 @@
 							"name": "IBM_5155",
 							"script": "",
 							"type": "Node3D"
+						},
+						{
+							"children": [
+								{
+									"children": [],
+									"name": "CollisionShape3D",
+									"script": "",
+									"type": "CollisionShape3D"
+								},
+								{
+									"children": [],
+									"name": "ZoomTarget",
+									"script": "",
+									"type": "Node3D"
+								}
+							],
+							"name": "WindowDetect",
+							"script": "res://scenes/winder_interact.gd",
+							"type": "Area3D"
 						}
 					],
 					"name": "Cockpit",
@@ -676,6 +730,12 @@
 						}
 					],
 					"name": "ButtonMaster",
+					"script": "",
+					"type": "Node3D"
+				},
+				{
+					"children": [],
+					"name": "Seat",
 					"script": "",
 					"type": "Node3D"
 				}

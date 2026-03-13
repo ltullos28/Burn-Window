@@ -28,20 +28,25 @@ enum ButtonMode {
 @export var zoom_repeat_initial_delay: float = 0.35
 @export var zoom_repeat_interval: float = 0.08
 
+@export var player_path: NodePath
+
+var player: Node
 var lever: Node
 var ship: Node
 var trajectory_map: Node
 
 var shared_button_audio: AudioStreamPlayer3D
-var rotation_whir: Node
+var rotation_whir: AudioStreamPlayer
 var refresh_sound: Node
 
 var is_held: bool = false
 var repeat_timer: float = 0.0
 var repeat_started: bool = false
 
+
 func _ready() -> void:
 	_resolve_refs()
+
 
 func _process(delta: float) -> void:
 	if action_type != ActionType.TRAJECTORY_ZOOM:
@@ -63,14 +68,16 @@ func _process(delta: float) -> void:
 			repeat_timer = zoom_repeat_interval
 			_apply_zoom_step(false)
 
+
 func _resolve_refs() -> void:
 	lever = get_node_or_null(lever_path)
 	ship = get_node_or_null(ship_path)
 	trajectory_map = get_node_or_null(trajectory_map_path)
-
+	player = get_node_or_null(player_path)
 	shared_button_audio = get_node_or_null(shared_button_audio_path) as AudioStreamPlayer3D
-	rotation_whir = get_node_or_null(rotation_whir_path)
+	rotation_whir = get_node_or_null(rotation_whir_path) as AudioStreamPlayer
 	refresh_sound = get_node_or_null(refresh_sound_path)
+
 
 func _play_shared_button_audio() -> void:
 	if shared_button_audio == null:
@@ -78,6 +85,23 @@ func _play_shared_button_audio() -> void:
 	if shared_button_audio.stream == null:
 		return
 	shared_button_audio.play()
+
+
+func _start_rotation_whir() -> void:
+	if rotation_whir == null:
+		return
+	if rotation_whir.stream == null:
+		return
+	if not rotation_whir.playing:
+		rotation_whir.play()
+
+
+func _stop_rotation_whir() -> void:
+	if rotation_whir == null:
+		return
+	if rotation_whir.playing:
+		rotation_whir.stop()
+
 
 func _apply_zoom_step(play_click: bool) -> void:
 	if trajectory_map == null:
@@ -93,18 +117,17 @@ func _apply_zoom_step(play_click: bool) -> void:
 		if trajectory_map.has_method("zoom_out"):
 			trajectory_map.zoom_out()
 
+
 func press() -> void:
 	_resolve_refs()
 
 	match action_type:
 		ActionType.LEVER:
 			_play_shared_button_audio()
+			_start_rotation_whir()
 
 			if lever == null:
 				return
-
-			if rotation_whir != null and rotation_whir.has_method("press_input"):
-				rotation_whir.press_input()
 
 			if mode == ButtonMode.PLUS:
 				if lever.has_method("press_plus"):
@@ -120,6 +143,9 @@ func press() -> void:
 				return
 			if ship.has_method("set_thrust_held"):
 				ship.set_thrust_held(true)
+
+			if player != null and player.has_method("set_thrust_feedback_active"):
+				player.set_thrust_feedback_active(true)
 
 		ActionType.TRAJECTORY_REFRESH:
 			_play_shared_button_audio()
@@ -151,16 +177,16 @@ func press() -> void:
 			if trajectory_map != null and trajectory_map.has_method("cycle_display_mode"):
 				trajectory_map.cycle_display_mode()
 				
+
 func release() -> void:
 	_resolve_refs()
 
 	match action_type:
 		ActionType.LEVER:
+			_stop_rotation_whir()
+
 			if lever == null:
 				return
-
-			if rotation_whir != null and rotation_whir.has_method("release_input"):
-				rotation_whir.release_input()
 
 			if mode == ButtonMode.PLUS:
 				if lever.has_method("release_plus"):
@@ -174,6 +200,9 @@ func release() -> void:
 				return
 			if ship.has_method("set_thrust_held"):
 				ship.set_thrust_held(false)
+
+			if player != null and player.has_method("set_thrust_feedback_active"):
+				player.set_thrust_feedback_active(false)
 
 		ActionType.TRAJECTORY_REFRESH:
 			pass

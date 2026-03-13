@@ -1,4 +1,4 @@
-extends AudioStreamPlayer3D
+extends AudioStreamPlayer
 
 @export var autoplay_on_ready: bool = true
 @export var fade_in_time: float = 2.0
