@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c2a423j7648ew"
 path.s3tc="res://.godot/imported/IBM_5155_buttons_plusminus.png-732ba2019e1f5c6a6c50120997950ab1.s3tc.ctex"
+path.etc2="res://.godot/imported/IBM_5155_buttons_plusminus.png-732ba2019e1f5c6a6c50120997950ab1.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://scenes/IBM_5155_buttons_plusminus.png"
-dest_files=["res://.godot/imported/IBM_5155_buttons_plusminus.png-732ba2019e1f5c6a6c50120997950ab1.s3tc.ctex"]
+dest_files=["res://.godot/imported/IBM_5155_buttons_plusminus.png-732ba2019e1f5c6a6c50120997950ab1.s3tc.ctex", "res://.godot/imported/IBM_5155_buttons_plusminus.png-732ba2019e1f5c6a6c50120997950ab1.etc2.ctex"]
 
 [params]
 

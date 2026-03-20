@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://3imi3ae7tx18"
 path.s3tc="res://.godot/imported/IBM_5155_bakedComputerII.png-78052f55cbf3b1b5050d8dc906ba6275.s3tc.ctex"
+path.etc2="res://.godot/imported/IBM_5155_bakedComputerII.png-78052f55cbf3b1b5050d8dc906ba6275.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://scenes/IBM_5155_bakedComputerII.png"
-dest_files=["res://.godot/imported/IBM_5155_bakedComputerII.png-78052f55cbf3b1b5050d8dc906ba6275.s3tc.ctex"]
+dest_files=["res://.godot/imported/IBM_5155_bakedComputerII.png-78052f55cbf3b1b5050d8dc906ba6275.s3tc.ctex", "res://.godot/imported/IBM_5155_bakedComputerII.png-78052f55cbf3b1b5050d8dc906ba6275.etc2.ctex"]
 
 [params]
 

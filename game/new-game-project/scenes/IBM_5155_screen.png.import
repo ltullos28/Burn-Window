@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c4f865jnjif47"
 path.s3tc="res://.godot/imported/IBM_5155_screen.png-474860eef02bff3cb06c25fdcab280df.s3tc.ctex"
+path.etc2="res://.godot/imported/IBM_5155_screen.png-474860eef02bff3cb06c25fdcab280df.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://scenes/IBM_5155_screen.png"
-dest_files=["res://.godot/imported/IBM_5155_screen.png-474860eef02bff3cb06c25fdcab280df.s3tc.ctex"]
+dest_files=["res://.godot/imported/IBM_5155_screen.png-474860eef02bff3cb06c25fdcab280df.s3tc.ctex", "res://.godot/imported/IBM_5155_screen.png-474860eef02bff3cb06c25fdcab280df.etc2.ctex"]
 
 [params]
 

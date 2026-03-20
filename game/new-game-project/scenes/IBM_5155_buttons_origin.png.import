@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cvivc2q1jh0cw"
 path.s3tc="res://.godot/imported/IBM_5155_buttons_origin.png-29910aca4c940b6e91eb9063dab3657f.s3tc.ctex"
+path.etc2="res://.godot/imported/IBM_5155_buttons_origin.png-29910aca4c940b6e91eb9063dab3657f.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://scenes/IBM_5155_buttons_origin.png"
-dest_files=["res://.godot/imported/IBM_5155_buttons_origin.png-29910aca4c940b6e91eb9063dab3657f.s3tc.ctex"]
+dest_files=["res://.godot/imported/IBM_5155_buttons_origin.png-29910aca4c940b6e91eb9063dab3657f.s3tc.ctex", "res://.godot/imported/IBM_5155_buttons_origin.png-29910aca4c940b6e91eb9063dab3657f.etc2.ctex"]
 
 [params]
 
