@@ -1,36 +1,118 @@
 class_name TrajectoryPredictor
 extends RefCounted
 
+func _compute_inverse_square_gravity(mu: float, distance: float) -> float:
+	if mu <= 0.0 or distance <= 0.0001:
+		return 0.0
+	return mu / (distance * distance)
+
+func _compile_bodies() -> Array[Dictionary]:
+	var unresolved: Dictionary = {}
+	for body_name in SimulationState.get_body_names():
+		var record: Dictionary = SimulationState.get_body_record(body_name)
+		if record.is_empty():
+			continue
+
+		var orbit: Dictionary = record.get("orbit", {})
+		var parent_body_name: StringName = record.get("parent_body", &"")
+		unresolved[String(body_name)] = {
+			"name": body_name,
+			"mu": record.get("mu", 0.0),
+			"parent_body": parent_body_name,
+			"static_pos": record.get("pos", Vector3.ZERO),
+			"static_vel": record.get("vel", Vector3.ZERO),
+			"orbit_center_distance": orbit.get("center_distance", 0.0),
+			"orbit_phase": orbit.get("phase", 0.0),
+			"orbit_angular_speed": orbit.get("angular_speed", 0.0),
+			"orbit_linear_speed": orbit.get("linear_speed", 0.0),
+			"is_on_rails": parent_body_name != &"" and not orbit.is_empty(),
+		}
+
+	var compiled: Array[Dictionary] = []
+	while not unresolved.is_empty():
+		var resolved_one: bool = false
+		for body_key in unresolved.keys():
+			var body: Dictionary = unresolved[body_key]
+			var parent_body_name: StringName = body.get("parent_body", &"")
+			if parent_body_name == &"" or _find_compiled_body_index(compiled, parent_body_name) >= 0:
+				body["parent_index"] = _find_compiled_body_index(compiled, parent_body_name)
+				compiled.append(body)
+				unresolved.erase(body_key)
+				resolved_one = true
+				break
+
+		if resolved_one:
+			continue
+
+		# Fallback for unexpected cycles or bad data: append remaining bodies in arbitrary order.
+		for body_key in unresolved.keys():
+			var body: Dictionary = unresolved[body_key]
+			body["parent_index"] = -1
+			compiled.append(body)
+		unresolved.clear()
+
+	return compiled
+
+func _find_compiled_body_index(compiled_bodies: Array[Dictionary], body_name: StringName) -> int:
+	for i in range(compiled_bodies.size()):
+		if compiled_bodies[i].get("name", &"") == body_name:
+			return i
+	return -1
+
+func _evaluate_body_states_for_time(
+	compiled_bodies: Array[Dictionary],
+	query_time: float,
+	body_positions: Array[Vector3],
+	body_velocities: Array[Vector3]
+) -> void:
+	body_positions.clear()
+	body_velocities.clear()
+
+	for body in compiled_bodies:
+		if not body.get("is_on_rails", false):
+			body_positions.append(body.get("static_pos", Vector3.ZERO))
+			body_velocities.append(body.get("static_vel", Vector3.ZERO))
+			continue
+
+		var parent_index: int = body.get("parent_index", -1)
+		var parent_pos: Vector3 = Vector3.ZERO
+		var parent_vel: Vector3 = Vector3.ZERO
+		if parent_index >= 0 and parent_index < body_positions.size():
+			parent_pos = body_positions[parent_index]
+			parent_vel = body_velocities[parent_index]
+
+		var orbit_center_distance: float = body.get("orbit_center_distance", 0.0)
+		var orbit_angular_speed: float = body.get("orbit_angular_speed", 0.0)
+		var orbit_linear_speed: float = body.get("orbit_linear_speed", 0.0)
+		var angle: float = body.get("orbit_phase", 0.0) + query_time * orbit_angular_speed
+		var local_offset: Vector3 = Vector3(
+			cos(angle) * orbit_center_distance,
+			0.0,
+			sin(angle) * orbit_center_distance
+		)
+		var tangent: Vector3 = Vector3(
+			-sin(angle),
+			0.0,
+			cos(angle)
+		) * orbit_linear_speed
+
+		body_positions.append(parent_pos + local_offset)
+		body_velocities.append(parent_vel + tangent)
+
 func _gravity_from_body(position: Vector3, body_pos: Vector3, mu: float, min_gravity_distance: float) -> Vector3:
 	var offset: Vector3 = body_pos - position
 	var distance: float = max(offset.length(), min_gravity_distance)
 	return offset * mu / pow(distance, 3.0)
 
-func _gravity_accel(position: Vector3, moon_pos: Vector3) -> Vector3:
+func _gravity_accel(position: Vector3, compiled_bodies: Array[Dictionary], body_positions: Array[Vector3]) -> Vector3:
 	var accel: Vector3 = Vector3.ZERO
-	accel += _gravity_from_body(position, SimulationState.planet_pos, SimulationState.planet_mu, SimulationState.min_gravity_distance)
-	accel += _gravity_from_body(position, moon_pos, SimulationState.moon_mu, SimulationState.min_gravity_distance)
+	var body_count: int = min(compiled_bodies.size(), body_positions.size())
+	for i in range(body_count):
+		var body_mu: float = compiled_bodies[i].get("mu", 0.0)
+		if body_mu <= 0.0:
+			continue
+		accel += _gravity_from_body(position, body_positions[i], body_mu, SimulationState.min_gravity_distance)
 	return accel
-
-func _moon_state_at_time(sim_time: float) -> Dictionary:
-	var moon_angle: float = SimulationState.moon_orbit_phase + sim_time * SimulationState.moon_orbit_speed
-
-	var moon_pos: Vector3 = SimulationState.planet_pos + Vector3(
-		cos(moon_angle) * SimulationState.moon_orbit_radius,
-		0.0,
-		sin(moon_angle) * SimulationState.moon_orbit_radius
-	)
-
-	var moon_vel: Vector3 = Vector3(
-		-sin(moon_angle),
-		0.0,
-		cos(moon_angle)
-	) * SimulationState.moon_orbit_linear_speed
-
-	return {
-		"pos": moon_pos,
-		"vel": moon_vel
-	}
 
 func _project_planet_frame(point: Vector3) -> Vector2:
 	return Vector2(point.x, -point.z)
@@ -179,9 +261,40 @@ func compute(
 	_radial_extrema_tolerance: float
 ) -> Dictionary:
 	var ship_points: Array[Vector3] = []
-	var moon_points: Array[Vector3] = []
+	var ship_velocities: Array[Vector3] = []
 	var planet_radii: Array[float] = []
-	var moon_dominance: Array[bool] = []
+	var compiled_bodies: Array[Dictionary] = _compile_bodies()
+	var body_positions: Array[Vector3] = []
+	var body_velocities: Array[Vector3] = []
+	var planet_body_index: int = _find_compiled_body_index(compiled_bodies, &"planet")
+	var child_body_infos: Array[Dictionary] = []
+	var child_relative_points: Array = []
+	var child_dominance_masks: Array = []
+	var child_best_distances: Array[float] = []
+	var child_best_times: Array[float] = []
+	var child_best_relative_speeds: Array[float] = []
+	var child_best_indices: Array[int] = []
+
+	for i in range(compiled_bodies.size()):
+		var body: Dictionary = compiled_bodies[i]
+		var parent_index: int = body.get("parent_index", -1)
+		if parent_index < 0 or parent_index >= compiled_bodies.size():
+			continue
+
+		var body_name: StringName = body.get("name", &"")
+		var parent_body_name: StringName = compiled_bodies[parent_index].get("name", &"")
+		child_body_infos.append({
+			"body_name": body_name,
+			"parent_body_name": parent_body_name,
+			"body_index": i,
+			"parent_index": parent_index,
+		})
+		child_relative_points.append([])
+		child_dominance_masks.append([])
+		child_best_distances.append(INF)
+		child_best_times.append(-1.0)
+		child_best_relative_speeds.append(-1.0)
+		child_best_indices.append(-1)
 
 	var test_pos: Vector3 = ship_pos
 	var test_vel: Vector3 = ship_vel
@@ -191,21 +304,15 @@ func compute(
 	var closest_approach_distance: float = initial_rel_ship_planet.length()
 	var closest_approach_time: float = 0.0
 
-	var best_moon_ca: float = INF
-	var best_moon_tca: float = -1.0
-	var best_moon_vrel: float = -1.0
-	var best_moon_ca_index: int = -1
-
 	for i in range(prediction_steps):
-		var moon_state: Dictionary = _moon_state_at_time(test_time)
-		var predicted_moon_pos: Vector3 = moon_state["pos"]
-		var predicted_moon_vel: Vector3 = moon_state["vel"]
-
-		var rel_ship_planet: Vector3 = test_pos - SimulationState.planet_pos
-		var rel_moon_planet: Vector3 = predicted_moon_pos - SimulationState.planet_pos
+		_evaluate_body_states_for_time(compiled_bodies, test_time, body_positions, body_velocities)
+		var predicted_planet_pos: Vector3 = SimulationState.planet_pos
+		if planet_body_index >= 0 and planet_body_index < body_positions.size():
+			predicted_planet_pos = body_positions[planet_body_index]
+		var rel_ship_planet: Vector3 = test_pos - predicted_planet_pos
 
 		ship_points.append(rel_ship_planet)
-		moon_points.append(rel_moon_planet)
+		ship_velocities.append(test_vel)
 
 		var report_t: float = float(i) * prediction_step_seconds
 		var true_radius: float = rel_ship_planet.length()
@@ -215,29 +322,81 @@ func compute(
 			closest_approach_distance = true_radius
 			closest_approach_time = report_t
 
-		var d_moon: float = (test_pos - predicted_moon_pos).length()
-		if d_moon < best_moon_ca:
-			best_moon_ca = d_moon
-			best_moon_tca = report_t
-			best_moon_vrel = (test_vel - predicted_moon_vel).length()
-			best_moon_ca_index = i
+		for child_i in range(child_body_infos.size()):
+			var body_info: Dictionary = child_body_infos[child_i]
+			var body_index: int = body_info.get("body_index", -1)
+			var parent_index: int = body_info.get("parent_index", -1)
+			if body_index < 0 or parent_index < 0:
+				continue
+			if body_index >= body_positions.size() or parent_index >= body_positions.size():
+				continue
 
-		var d_planet_3d: float = rel_ship_planet.length()
+			var predicted_body_pos: Vector3 = body_positions[body_index]
+			var predicted_parent_pos: Vector3 = body_positions[parent_index]
+			var predicted_body_vel: Vector3 = body_velocities[body_index] if body_index < body_velocities.size() else Vector3.ZERO
+			var rel_body_parent: Vector3 = predicted_body_pos - predicted_parent_pos
+			child_relative_points[child_i].append(rel_body_parent)
 
-		var g_planet: float = 0.0
-		if d_planet_3d > 0.0001:
-			g_planet = SimulationState.planet_mu / (d_planet_3d * d_planet_3d)
+			var d_body: float = (test_pos - predicted_body_pos).length()
+			if d_body < child_best_distances[child_i]:
+				child_best_distances[child_i] = d_body
+				child_best_times[child_i] = report_t
+				child_best_relative_speeds[child_i] = (test_vel - predicted_body_vel).length()
+				child_best_indices[child_i] = i
 
-		var g_moon: float = 0.0
-		if d_moon > 0.0001:
-			g_moon = SimulationState.moon_mu / (d_moon * d_moon)
+		var child_body_gravities: Array[float] = []
+		var child_parent_gravities: Array[float] = []
+		child_body_gravities.resize(child_body_infos.size())
+		child_parent_gravities.resize(child_body_infos.size())
+		var dominant_child_index_by_parent: Dictionary = {}
+		var dominant_child_gravity_by_parent: Dictionary = {}
 
-		moon_dominance.append(g_moon > g_planet)
+		for child_i in range(child_body_infos.size()):
+			var body_info: Dictionary = child_body_infos[child_i]
+			var body_index: int = body_info.get("body_index", -1)
+			var parent_index: int = body_info.get("parent_index", -1)
+			if body_index < 0 or parent_index < 0:
+				child_body_gravities[child_i] = 0.0
+				child_parent_gravities[child_i] = 0.0
+				continue
+			if body_index >= body_positions.size() or parent_index >= body_positions.size():
+				child_body_gravities[child_i] = 0.0
+				child_parent_gravities[child_i] = 0.0
+				continue
 
-		var accel: Vector3 = _gravity_accel(test_pos, predicted_moon_pos)
+			var body_mu: float = compiled_bodies[body_index].get("mu", 0.0)
+			var parent_mu: float = compiled_bodies[parent_index].get("mu", 0.0)
+			var d_body: float = (test_pos - body_positions[body_index]).length()
+			var d_parent: float = (test_pos - body_positions[parent_index]).length()
+			var g_body: float = _compute_inverse_square_gravity(body_mu, d_body)
+			var g_parent: float = _compute_inverse_square_gravity(parent_mu, d_parent)
+
+			child_body_gravities[child_i] = g_body
+			child_parent_gravities[child_i] = g_parent
+
+			if g_body <= g_parent:
+				continue
+
+			var current_best_child_index: int = int(dominant_child_index_by_parent.get(parent_index, -1))
+			var current_best_gravity: float = float(dominant_child_gravity_by_parent.get(parent_index, -1.0))
+			if current_best_child_index < 0 or g_body > current_best_gravity:
+				dominant_child_index_by_parent[parent_index] = child_i
+				dominant_child_gravity_by_parent[parent_index] = g_body
+
+		for child_i in range(child_body_infos.size()):
+			var body_info: Dictionary = child_body_infos[child_i]
+			var parent_index: int = body_info.get("parent_index", -1)
+			var dominant_child_index: int = int(dominant_child_index_by_parent.get(parent_index, -1))
+			var g_body: float = child_body_gravities[child_i]
+			var g_parent: float = child_parent_gravities[child_i]
+			child_dominance_masks[child_i].append(
+				g_body > g_parent and dominant_child_index == child_i
+			)
+
+		var accel: Vector3 = _gravity_accel(test_pos, compiled_bodies, body_positions)
 		test_vel += accel * prediction_step_seconds
 		test_pos += test_vel * prediction_step_seconds
-		test_time += prediction_step_seconds * SimulationState.celestial_time_scale
+		test_time += prediction_step_seconds
 
 	var predicted_periapsis_distance: float = -1.0
 	var predicted_apoapsis_distance: float = -1.0
@@ -308,12 +467,16 @@ func compute(
 				else:
 					var pe_vec: Vector2 = _project_planet_frame(ship_points[predicted_periapsis_index])
 					var ap_vec: Vector2 = _project_planet_frame(ship_points[predicted_apoapsis_index])
-
-					var angular_gap: float = abs(wrapf(ap_vec.angle() - pe_vec.angle(), -PI, PI))
-					var opposite_error: float = abs(PI - angular_gap)
-
-					if opposite_error > PI * 0.30:
+					if pe_vec.length_squared() <= 0.0001 or ap_vec.length_squared() <= 0.0001:
 						apsides_missing_or_collapsed = true
+					else:
+						var angular_gap: float = abs(wrapf(ap_vec.angle() - pe_vec.angle(), -PI, PI))
+						var opposite_error: float = abs(PI - angular_gap)
+						var apsis_spatial_gap: float = pe_vec.distance_to(ap_vec)
+						var projected_mean_radius: float = max(local_mean_r, 1.0)
+						var apsides_too_close_together: bool = apsis_spatial_gap < projected_mean_radius * 1.20
+						if opposite_error > PI * 0.18 or apsides_too_close_together:
+							apsides_missing_or_collapsed = true
 
 				if looks_near_circular and apsides_missing_or_collapsed:
 					var pe_index: int = min(chunk_start + 8, chunk_end)
@@ -323,7 +486,7 @@ func compute(
 						ship_points,
 						opposite_target,
 						pe_index + 1,
-						chunk_end
+						chunk_end,
 					)
 
 					predicted_periapsis_index = pe_index
@@ -335,8 +498,51 @@ func compute(
 						predicted_apoapsis_distance = planet_radii[ap_index]
 						predicted_apoapsis_time = float(ap_index) * prediction_step_seconds
 
+	var body_predictions: Dictionary = {}
+	for child_i in range(child_body_infos.size()):
+		var body_info: Dictionary = child_body_infos[child_i]
+		var body_name: StringName = body_info.get("body_name", &"")
+		body_predictions[String(body_name)] = {
+			"body_name": body_name,
+			"parent_body_name": body_info.get("parent_body_name", &""),
+			"relative_points": child_relative_points[child_i],
+			"dominance_mask": child_dominance_masks[child_i],
+			"closest_approach": {
+				"distance": child_best_distances[child_i],
+				"time": child_best_times[child_i],
+				"relative_speed": child_best_relative_speeds[child_i],
+				"index": child_best_indices[child_i],
+			},
+		}
+
+	var legacy_moon_prediction: Dictionary = body_predictions.get("moon", {
+		"body_name": &"moon",
+		"parent_body_name": &"planet",
+		"relative_points": [],
+		"dominance_mask": [],
+		"closest_approach": {
+			"distance": INF,
+			"time": -1.0,
+			"relative_speed": -1.0,
+			"index": -1,
+		},
+	})
+	var moon_points: Array[Vector3] = []
+	for point in legacy_moon_prediction.get("relative_points", []):
+		moon_points.append(point)
+	var moon_dominance: Array[bool] = []
+	for value in legacy_moon_prediction.get("dominance_mask", []):
+		moon_dominance.append(bool(value))
+	var moon_closest_approach: Dictionary = legacy_moon_prediction.get("closest_approach", {})
+	var best_moon_ca: float = moon_closest_approach.get("distance", INF)
+	var best_moon_tca: float = moon_closest_approach.get("time", -1.0)
+	var best_moon_vrel: float = moon_closest_approach.get("relative_speed", -1.0)
+	var best_moon_ca_index: int = moon_closest_approach.get("index", -1)
+
 	return {
 		"ship_points": ship_points,
+		"ship_velocities": ship_velocities,
+		"body_predictions": body_predictions,
 		"moon_points": moon_points,
 		"closest_approach_distance": closest_approach_distance,
 		"closest_approach_time": closest_approach_time,

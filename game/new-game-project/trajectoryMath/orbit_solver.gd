@@ -1,7 +1,7 @@
 class_name OrbitSolver
 extends RefCounted
 
-func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector3, planet_mu: float, planet_radius: float) -> Dictionary:
+func solve_relative_orbit(rel: Vector3, vel: Vector3, mu: float, body_radius: float) -> Dictionary:
 	var result := {
 		"orbit_classification": "UNRESOLVED",
 		"periapsis_distance": -1.0,
@@ -17,12 +17,8 @@ func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector
 		"specific_energy": 0.0
 	}
 
-	var rel: Vector3 = ship_pos - planet_pos
-	var vel: Vector3 = ship_vel
-
 	var r: float = rel.length()
 	var v2: float = vel.length_squared()
-	var mu: float = planet_mu
 
 	if r <= 0.0001 or mu <= 0.0001:
 		return result
@@ -60,7 +56,7 @@ func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector
 				result["apoapsis_marker_world"] = -peri_dir * ap
 				result["has_apoapsis_marker"] = true
 
-		if pe <= planet_radius:
+		if pe <= body_radius:
 			result["orbit_classification"] = "IMPACT"
 		elif e < 1.0:
 			if abs(ap - pe) < 0.5:
@@ -78,3 +74,7 @@ func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector
 		result["orbit_classification"] = "ESCAPE"
 
 	return result
+
+func solve_planet_orbit(ship_pos: Vector3, ship_vel: Vector3, planet_pos: Vector3, planet_mu: float, planet_radius: float) -> Dictionary:
+	var rel: Vector3 = ship_pos - planet_pos
+	return solve_relative_orbit(rel, ship_vel, planet_mu, planet_radius)

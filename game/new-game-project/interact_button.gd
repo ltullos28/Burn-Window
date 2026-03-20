@@ -121,6 +121,10 @@ func _apply_zoom_step(play_click: bool) -> void:
 func press() -> void:
 	_resolve_refs()
 
+	if SimulationState.is_targeted_warp_active():
+		if action_type == ActionType.LEVER or action_type == ActionType.THRUST:
+			return
+
 	match action_type:
 		ActionType.LEVER:
 			_play_shared_button_audio()
@@ -180,6 +184,10 @@ func press() -> void:
 
 func release() -> void:
 	_resolve_refs()
+
+	if SimulationState.is_targeted_warp_active():
+		if action_type == ActionType.LEVER or action_type == ActionType.THRUST:
+			return
 
 	match action_type:
 		ActionType.LEVER:

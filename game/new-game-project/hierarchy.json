@@ -2,12 +2,6 @@
 	"children": [
 		{
 			"children": [],
-			"name": "Planet",
-			"script": "res://planet_render.gd",
-			"type": "MeshInstance3D"
-		},
-		{
-			"children": [],
 			"name": "WorldEnvironment",
 			"script": "",
 			"type": "WorldEnvironment"
@@ -194,6 +188,25 @@
 							"name": "WhirringPlayer3D",
 							"script": "",
 							"type": "AudioStreamPlayer"
+						},
+						{
+							"children": [
+								{
+									"children": [],
+									"name": "@ColorRect@2",
+									"script": "",
+									"type": "ColorRect"
+								},
+								{
+									"children": [],
+									"name": "@Label@3",
+									"script": "",
+									"type": "Label"
+								}
+							],
+							"name": "DeathOverlay",
+							"script": "",
+							"type": "CanvasLayer"
 						}
 					],
 					"name": "Player",
@@ -601,6 +614,12 @@
 									"name": "BeepPlayer3D",
 									"script": "res://trajectory_refresh_sound.gd",
 									"type": "AudioStreamPlayer3D"
+								},
+								{
+									"children": [],
+									"name": "ImpactPlayer",
+									"script": "",
+									"type": "AudioStreamPlayer"
 								}
 							],
 							"name": "IBM_5155",
@@ -785,7 +804,14 @@
 		{
 			"children": [
 				{
-					"children": [],
+					"children": [
+						{
+							"children": [],
+							"name": "HazeShell",
+							"script": "",
+							"type": "MeshInstance3D"
+						}
+					],
 					"name": "MeshInstance3D",
 					"script": "",
 					"type": "MeshInstance3D"
@@ -793,6 +819,26 @@
 			],
 			"name": "MoonVisual",
 			"script": "res://moon_render.gd",
+			"type": "Node3D"
+		},
+		{
+			"children": [
+				{
+					"children": [
+						{
+							"children": [],
+							"name": "AtmosphereShell",
+							"script": "",
+							"type": "MeshInstance3D"
+						}
+					],
+					"name": "Planet",
+					"script": "",
+					"type": "MeshInstance3D"
+				}
+			],
+			"name": "PlanetVisual",
+			"script": "res://planet_render.gd",
 			"type": "Node3D"
 		}
 	],

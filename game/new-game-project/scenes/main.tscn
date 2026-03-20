@@ -48,17 +48,8 @@
 [ext_resource type="Texture2D" uid="uid://clp3xk2vy5ore" path="res://scenes/IBM_5155_buttons_refreshmode.png" id="29_j8jky"]
 [ext_resource type="Texture2D" uid="uid://cvivc2q1jh0cw" path="res://scenes/IBM_5155_buttons_origin.png" id="29_kmb1v"]
 [ext_resource type="Script" uid="uid://c1jfkvitp4tia" path="res://scenes/screen_highlight.gd" id="35_vchkt"]
+[ext_resource type="AudioStream" uid="uid://dyqmg5a2pw35j" path="res://scenes/beeepbeepwarning.mp3" id="40_j2jfr"]
 [ext_resource type="Script" uid="uid://od786q7urufw" path="res://scenes/winder_interact.gd" id="41_nvyfr"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jyhfs"]
-albedo_color = Color(0.8823829, 0.82665706, 0.76737565, 1)
-albedo_texture = ExtResource("1_pm3ni")
-emission = Color(0.88235295, 0.827451, 0.76862746, 1)
-emission_energy_multiplier = 0.0
-
-[sub_resource type="SphereMesh" id="SphereMesh_0wfyh"]
-radius = 180.0
-height = 360.0
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sugp2"]
 sky_top_color = Color(0, 0, 0, 1)
@@ -480,15 +471,18 @@ albedo_texture = ExtResource("23_y6deb")
 radius = 45.0
 height = 90.0
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jyhfs"]
+albedo_color = Color(0.8823829, 0.82665706, 0.76737565, 1)
+albedo_texture = ExtResource("1_pm3ni")
+emission = Color(0.88235295, 0.827451, 0.76862746, 1)
+emission_energy_multiplier = 0.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_0wfyh"]
+radius = 180.0
+height = 360.0
+
 [node name="Main" type="Node3D" unique_id=1363539468]
 script = ExtResource("24_y6deb")
-
-[node name="Planet" type="MeshInstance3D" parent="." unique_id=1363273613]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.826843, 40, 3689.17)
-layers = 2
-material_override = SubResource("StandardMaterial3D_jyhfs")
-mesh = SubResource("SphereMesh_0wfyh")
-script = ExtResource("1_tipki")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1057810439]
 environment = SubResource("Environment_tbgi4")
@@ -907,6 +901,7 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("8_a8y0u")
 ship_path = NodePath("../../../..")
+impact_sound_player_path = NodePath("../../ImpactPlayer")
 moon_encounter_extra_time = 450.0
 strong_moon_ca_multiplier = 2.5
 
@@ -941,6 +936,9 @@ transform = Transform3D(0.5, 0, 0, 0, 0.5882353, 0, 0, 0, 0.5882353, 0, 0, 0)
 stream = ExtResource("15_jbj1t")
 max_distance = 153.12
 script = ExtResource("16_muem4")
+
+[node name="ImpactPlayer" type="AudioStreamPlayer" parent="Ship/Cockpit/IBM_5155" unique_id=1118890468]
+stream = ExtResource("40_j2jfr")
 
 [node name="WindowDetect" type="Area3D" parent="Ship/Cockpit" unique_id=1952458204]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -0.12850285, 0.882345, -2.148973)
@@ -1088,12 +1086,23 @@ max_distance = 191.4
 
 [node name="MoonVisual" type="Node3D" parent="." unique_id=1103344047]
 script = ExtResource("21_yc10j")
+mesh_root_path = NodePath("MeshInstance3D")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="MoonVisual" unique_id=744146069]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 207.87, 0, 0)
 layers = 2
 material_override = SubResource("StandardMaterial3D_jscy8")
 mesh = SubResource("SphereMesh_pm3ni")
+
+[node name="PlanetVisual" type="Node3D" parent="." unique_id=1753324605]
+script = ExtResource("1_tipki")
+mesh_root_path = NodePath("Planet")
+
+[node name="Planet" type="MeshInstance3D" parent="PlanetVisual" unique_id=1363273613]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46.826843, 40, 3689.17)
+layers = 2
+material_override = SubResource("StandardMaterial3D_jyhfs")
+mesh = SubResource("SphereMesh_0wfyh")
 
 [editable path="Ship/LeverPad/PitchLever"]
 [editable path="Ship/LeverPad/YawLever"]

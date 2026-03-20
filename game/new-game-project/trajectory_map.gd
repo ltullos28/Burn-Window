@@ -1,5 +1,13 @@
 extends Control
 
+const BodyFocusProjectionHelperModel := preload("res://trajectoryMath/body_focus_projection_helper.gd")
+const LocalOrbitMarkersModel := preload("res://trajectoryMath/local_orbit_markers.gd")
+const PredictionHorizonModel := preload("res://trajectoryMath/prediction_horizon.gd")
+const TimewarpSelectorModel := preload("res://trajectoryMath/timewarp_selector.gd")
+const TrajectoryProjectionCacheModel := preload("res://trajectoryMath/trajectory_projection_cache.gd")
+const PRIMARY_BODY_NAME := &"planet"
+const MOON_BODY_NAME := &"moon"
+
 enum CenterMode {
 	PLANET,
 	MOON,
@@ -12,10 +20,12 @@ enum DisplayMode {
 }
 
 @export var ship_path: NodePath
+@export var impact_sound_player_path: NodePath
 @export var ghost_lifetime_seconds: float = 10.0
 @export var pixels_per_unit: float = 0.046
 @export var min_pixels_per_unit: float = 0.0008
 @export var max_pixels_per_unit: float = 0.12
+@export var moon_max_pixels_per_unit: float = 0.24
 @export var zoom_step: float = 0.0025
 
 @export var prediction_step_seconds: float = 2
@@ -28,6 +38,19 @@ enum DisplayMode {
 @export var period_prediction_margin: float = 1.0
 @export var moon_encounter_extra_time: float = 400.0
 @export var strong_moon_ca_multiplier: float = 3.0
+@export var moon_local_period_prediction_margin: float = 1.15
+@export var moon_local_escape_prediction_seconds: float = 220.0
+@export var moon_local_min_prediction_steps: int = 240
+@export var moon_local_max_prediction_steps: int = 1800
+@export var focused_child_encounter_extra_characteristic_times: float = 7.2
+@export var focused_child_strong_ca_body_radii: float = 2.5
+@export var focused_child_local_period_margin: float = 1.15
+@export var focused_child_local_escape_characteristic_times: float = 3.5
+@export var focused_child_local_min_prediction_steps: int = 240
+@export var focused_child_local_max_prediction_steps: int = 1800
+@export var closure_distance_ratio_tolerance: float = 0.12
+@export var closure_scan_chunk_steps: int = 24
+@export var closure_min_threshold_step_multiplier: float = 2.5
 @export var extrema_window_radius: int = 4
 @export var radial_extrema_tolerance: float = 4.0
 @export var center_mode: CenterMode = CenterMode.PLANET
@@ -36,8 +59,12 @@ enum DisplayMode {
 @export var ghost_dash_length: int = 10
 @export var ghost_gap_length: int = 6
 @export var ship_mode_ghost_trail_steps: int = 220
+@export var moon_escape_tail_steps: int = 52
+@export var timewarp_fine_step_fraction_of_horizon: float = 1.0 / 120.0
+@export var timewarp_coarse_step_fraction_of_horizon: float = 1.0 / 24.0
 
 @export var center_transition_duration: float = 0.65
+@export var debug_render_instrumentation: bool = false
 
 var ship: Node3D
 
@@ -54,32 +81,329 @@ var transition_start_offset: Vector2 = Vector2.ZERO
 var transition_elapsed: float = 0.0
 var transition_active: bool = false
 
+var focus_active: bool = false
+var body_focus_projection := BodyFocusProjectionHelperModel.new()
+var local_orbit_markers := LocalOrbitMarkersModel.new()
+var prediction_horizon := PredictionHorizonModel.new()
+var timewarp_selector := TimewarpSelectorModel.new()
+var trajectory_projection_cache := TrajectoryProjectionCacheModel.new()
+var previous_targeted_warp_active: bool = false
+var refresh_sound_player: Node = null
+var impact_sound_player: Node = null
+
+var geometry_cache_dirty: bool = true
+var cached_ship_source_points: Array[Vector3] = []
+var cached_ship_runs: Array[Dictionary] = []
+var cached_main_visible_count: int = 0
+var cached_ship_impact_found: bool = false
+var cached_ship_impact_index: int = -1
+var cached_focused_child_body_name: StringName = &""
+var cached_focused_child_draw_points: Array[Vector3] = []
+var cached_focused_child_local_points: Array[Vector3] = []
+var cached_focused_child_local_source_indices: Array[int] = []
+var cached_focused_child_local_ca_index: int = -1
+var cached_focused_child_local_pe_index: int = -1
+var cached_focused_child_local_ap_index: int = -1
+var cached_focused_child_local_impact_found: bool = false
+var cached_focused_child_local_impact_index: int = -1
+var cached_show_focused_child_local_ca_marker: bool = false
+var cached_show_focused_child_escape_marker: bool = false
+var cached_focused_child_escape_marker_local_index: int = -1
+var cached_focused_child_entry_index: int = -1
+var cached_focused_child_exit_index: int = -1
+var cached_currently_in_focused_child_dominance: bool = false
+var cached_focused_child_encounter: Dictionary = {}
+var cached_active_body_encounter: Dictionary = {}
+var impact_sound_pending: bool = false
+var impact_sound_played: bool = false
+var focused_child_body_name: StringName = MOON_BODY_NAME
+var visual_dirty: bool = true
+var projected_render_dirty: bool = true
+var last_draw_visible_count: int = -1
+var last_draw_main_visible_count: int = -1
+var last_draw_ghost_alpha: float = -1.0
+var last_draw_view_offset: Vector2 = Vector2(1e20, 1e20)
+var last_draw_ship_pos: Vector3 = Vector3(1e20, 1e20, 1e20)
+var last_draw_ship_vel: Vector3 = Vector3(1e20, 1e20, 1e20)
+var last_draw_center_mode: int = -1
+var last_draw_display_mode: int = -1
+var last_draw_pixels_per_unit: float = -1.0
+var last_draw_focused_child_body_name: StringName = &""
+var last_draw_child_positions_signature: String = ""
+var cached_projected_center: Vector2 = Vector2.ZERO
+var cached_projected_view_offset: Vector2 = Vector2(1e20, 1e20)
+var cached_projected_pixels_per_unit: float = -1.0
+var cached_projected_visible_count: int = -1
+var cached_projected_main_visible_count: int = -1
+var cached_projected_center_mode: int = -1
+var cached_projected_focused_child_body_name: StringName = &""
+var cached_projected_local_anchor: Vector3 = Vector3(1e20, 1e20, 1e20)
+var cached_projected_ship_points: PackedVector2Array = PackedVector2Array()
+var cached_projected_ship_run_draws: Array[Dictionary] = []
+var cached_projected_local_points: PackedVector2Array = PackedVector2Array()
+var cached_projected_local_run_draws: Array[Dictionary] = []
+var cached_projected_child_ghosts: Dictionary = {}
+var debug_draw_calls_since_log: int = 0
+var debug_projection_cache_hits_since_log: int = 0
+var debug_projection_cache_rebuilds_since_log: int = 0
+var debug_last_projected_points_built: int = 0
+
+func _get_body_prediction(prediction: Dictionary, body_name: StringName) -> Dictionary:
+	var body_predictions: Dictionary = prediction.get("body_predictions", {})
+	return body_predictions.get(String(body_name), {})
+
+func _get_body_prediction_relative_points(prediction: Dictionary, body_name: StringName) -> Array[Vector3]:
+	var body_prediction: Dictionary = _get_body_prediction(prediction, body_name)
+	if body_prediction.is_empty():
+		return []
+	return _get_typed_vector3_array(body_prediction.get("relative_points", []))
+
+func _get_body_prediction_dominance_mask(prediction: Dictionary, body_name: StringName) -> Array[bool]:
+	var body_prediction: Dictionary = _get_body_prediction(prediction, body_name)
+	var typed_values: Array[bool] = []
+	for value in body_prediction.get("dominance_mask", []):
+		typed_values.append(bool(value))
+	return typed_values
+
+func _get_body_prediction_closest_approach(prediction: Dictionary, body_name: StringName) -> Dictionary:
+	var body_prediction: Dictionary = _get_body_prediction(prediction, body_name)
+	return body_prediction.get("closest_approach", {})
+
+func _mark_visual_dirty() -> void:
+	visual_dirty = true
+
+func _invalidate_projected_render_cache() -> void:
+	projected_render_dirty = true
+	cached_projected_ship_points = PackedVector2Array()
+	cached_projected_ship_run_draws.clear()
+	cached_projected_local_points = PackedVector2Array()
+	cached_projected_local_run_draws.clear()
+	cached_projected_child_ghosts.clear()
+
+func _get_child_positions_signature() -> String:
+	var signature_parts: PackedStringArray = PackedStringArray()
+	for body_name in _get_available_focused_child_body_names():
+		var pos: Vector3 = SimulationState.get_body_position(body_name)
+		signature_parts.append("%s:%.3f:%.3f:%.3f" % [String(body_name), pos.x, pos.y, pos.z])
+	return "|".join(signature_parts)
+
+func _get_current_visible_count() -> int:
+	if solution.ship_points.size() <= 1:
+		return 0
+	var ratio: float = clampf(reveal_elapsed / reveal_duration, 0.0, 1.0) if reveal_duration > 0.0 else 1.0
+	var display_step_cap: int = min(solution.ship_points.size(), max(2, solution.display_steps_used))
+	var visible_count: int = max(2, int(round((display_step_cap - 1) * ratio)) + 1)
+	return min(visible_count, display_step_cap)
+
+func _get_current_main_visible_count(visible_count: int) -> int:
+	if visible_count <= 0:
+		return 0
+	var active_local_segment: Dictionary = _get_active_local_segment()
+	var entry_index: int = active_local_segment.get("entry_index", cached_focused_child_entry_index)
+	var main_visible_count: int = visible_count
+	if center_mode == CenterMode.MOON and entry_index >= 0 and entry_index < visible_count:
+		main_visible_count = max(2, entry_index + 1)
+	return min(main_visible_count, cached_ship_source_points.size())
+
+func _get_current_ghost_alpha() -> float:
+	if ghost_lifetime_seconds <= 0.0:
+		return 1.0
+	return clampf(1.0 - (ghost_elapsed / ghost_lifetime_seconds), 0.0, 1.0)
+
+func _should_redraw_this_frame() -> bool:
+	if visual_dirty:
+		return true
+
+	var visible_count: int = _get_current_visible_count()
+	var main_visible_count: int = _get_current_main_visible_count(visible_count)
+	var ghost_alpha: float = _get_current_ghost_alpha()
+	var focused_child_name: StringName = _get_selected_focused_child_body_name()
+	var child_signature: String = _get_child_positions_signature()
+
+	if visible_count != last_draw_visible_count:
+		return true
+	if main_visible_count != last_draw_main_visible_count:
+		return true
+	if absf(ghost_alpha - last_draw_ghost_alpha) > 0.002:
+		return true
+	if current_view_offset.distance_squared_to(last_draw_view_offset) > 0.000001:
+		return true
+	if SimulationState.ship_pos != last_draw_ship_pos:
+		return true
+	if SimulationState.ship_vel != last_draw_ship_vel:
+		return true
+	if center_mode != last_draw_center_mode or display_mode != last_draw_display_mode:
+		return true
+	if absf(pixels_per_unit - last_draw_pixels_per_unit) > 0.000001:
+		return true
+	if focused_child_name != last_draw_focused_child_body_name:
+		return true
+	if child_signature != last_draw_child_positions_signature:
+		return true
+	return false
+
+func _record_draw_state(visible_count: int, main_visible_count: int, ghost_alpha: float) -> void:
+	last_draw_visible_count = visible_count
+	last_draw_main_visible_count = main_visible_count
+	last_draw_ghost_alpha = ghost_alpha
+	last_draw_view_offset = current_view_offset
+	last_draw_ship_pos = SimulationState.ship_pos
+	last_draw_ship_vel = SimulationState.ship_vel
+	last_draw_center_mode = center_mode
+	last_draw_display_mode = display_mode
+	last_draw_pixels_per_unit = pixels_per_unit
+	last_draw_focused_child_body_name = _get_selected_focused_child_body_name()
+	last_draw_child_positions_signature = _get_child_positions_signature()
+
+func _log_render_instrumentation_if_needed() -> void:
+	if not debug_render_instrumentation:
+		return
+	var frame_count: int = Engine.get_process_frames()
+	if frame_count % 120 != 0:
+		return
+	print(
+		"TrajectoryMap render stats | draws=%d | projection_cache_hits=%d | projection_cache_rebuilds=%d | last_projected_points=%d"
+		% [
+			debug_draw_calls_since_log,
+			debug_projection_cache_hits_since_log,
+			debug_projection_cache_rebuilds_since_log,
+			debug_last_projected_points_built
+		]
+	)
+	debug_draw_calls_since_log = 0
+	debug_projection_cache_hits_since_log = 0
+	debug_projection_cache_rebuilds_since_log = 0
+
 func _ready() -> void:
 	ship = get_node_or_null(ship_path) as Node3D
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	_sanitize_modes()
+	_ensure_focused_child_body_valid()
 
 	current_view_offset = _get_target_view_offset()
 	transition_start_offset = current_view_offset
+	previous_targeted_warp_active = SimulationState.is_targeted_warp_active()
+	_resolve_refresh_sound_player()
+	_resolve_impact_sound_player()
+	_mark_visual_dirty()
 
 func _process(delta: float) -> void:
 	_sanitize_modes()
+	_collapse_timewarp_if_stale()
 
 	if is_revealing:
 		reveal_elapsed += delta
 		if reveal_elapsed >= reveal_duration:
 			reveal_elapsed = reveal_duration
 			is_revealing = false
+		_mark_visual_dirty()
 
 	ghost_elapsed += delta
 
 	_update_center_transition(delta)
-	queue_redraw()
+	_update_timewarp_selector()
+
+	var targeted_warp_active_now: bool = SimulationState.is_targeted_warp_active()
+	if not previous_targeted_warp_active and targeted_warp_active_now:
+		_play_timewarp_sound()
+	if previous_targeted_warp_active and not targeted_warp_active_now:
+		_stop_timewarp_sound()
+		timewarp_selector.handle_warp_finished()
+		request_refresh()
+		_play_refresh_sound(reveal_duration)
+	previous_targeted_warp_active = targeted_warp_active_now
+
+	_rebuild_geometry_cache_if_needed()
+	_update_impact_sound_trigger()
+	if _should_redraw_this_frame():
+		queue_redraw()
+		visual_dirty = false
+	_log_render_instrumentation_if_needed()
 
 func _sanitize_modes() -> void:
+	var previous_center_mode: int = center_mode
+	var previous_focused_child_body_name: StringName = focused_child_body_name
+	_ensure_focused_child_body_valid()
 	if display_mode == DisplayMode.INCLINATION and center_mode == CenterMode.SHIP:
 		center_mode = CenterMode.PLANET
+	if center_mode == CenterMode.MOON and _get_selected_focused_child_body_name() == &"":
+		center_mode = CenterMode.PLANET
+	if previous_center_mode != center_mode or previous_focused_child_body_name != focused_child_body_name:
+		_mark_visual_dirty()
+		_invalidate_projected_render_cache()
+
+func _get_available_focused_child_body_names() -> Array[StringName]:
+	if SimulationState.has_method("get_child_body_names"):
+		return SimulationState.get_child_body_names(PRIMARY_BODY_NAME)
+	var result: Array[StringName] = []
+	if SimulationState.has_body(MOON_BODY_NAME):
+		result.append(MOON_BODY_NAME)
+	return result
+
+func _get_default_focused_child_body_name() -> StringName:
+	var child_body_names: Array[StringName] = _get_available_focused_child_body_names()
+	if child_body_names.is_empty():
+		return &""
+	if child_body_names.find(MOON_BODY_NAME) >= 0:
+		return MOON_BODY_NAME
+	return child_body_names[0]
+
+func _select_default_focused_child_body() -> bool:
+	var default_body_name: StringName = _get_default_focused_child_body_name()
+	if default_body_name == &"":
+		focused_child_body_name = &""
+		return false
+	focused_child_body_name = default_body_name
+	return true
+
+func _ensure_focused_child_body_valid() -> void:
+	var child_body_names: Array[StringName] = _get_available_focused_child_body_names()
+	if child_body_names.is_empty():
+		focused_child_body_name = &""
+		return
+	if child_body_names.find(focused_child_body_name) >= 0:
+		return
+	focused_child_body_name = _get_default_focused_child_body_name()
+
+func _get_selected_focused_child_body_name() -> StringName:
+	_ensure_focused_child_body_valid()
+	return focused_child_body_name
+
+func _set_focused_child_body_name(body_name: StringName) -> bool:
+	var child_body_names: Array[StringName] = _get_available_focused_child_body_names()
+	if child_body_names.find(body_name) < 0:
+		return false
+	focused_child_body_name = body_name
+	return true
+
+func _advance_focused_child_selection(direction: int = 1) -> bool:
+	var child_body_names: Array[StringName] = _get_available_focused_child_body_names()
+	if child_body_names.is_empty():
+		focused_child_body_name = &""
+		return false
+	_ensure_focused_child_body_valid()
+	var current_index: int = child_body_names.find(focused_child_body_name)
+	if current_index < 0:
+		focused_child_body_name = _get_default_focused_child_body_name()
+		return true
+	var target_index: int = current_index + direction
+	if target_index < 0 or target_index >= child_body_names.size():
+		return false
+	focused_child_body_name = child_body_names[target_index]
+	return true
+
+func _get_body_display_text(body_name: StringName) -> String:
+	if body_name == &"":
+		return "CHILD"
+	return String(body_name).replace("_", " ").to_upper()
+
+func _get_child_ghost_color(index: int, count: int, is_selected: bool) -> Color:
+	var use_count: int = max(count, 1)
+	var hue: float = fposmod((float(index) / float(use_count)) + 0.58, 1.0)
+	var saturation: float = 0.78 if is_selected else 0.62
+	var value: float = 1.0 if is_selected else 0.9
+	return Color.from_hsv(hue, saturation, value, 1.0)
 
 func _update_center_transition(delta: float) -> void:
 	var target_offset: Vector2 = _get_target_view_offset()
@@ -116,6 +440,11 @@ func _update_center_transition(delta: float) -> void:
 
 func request_refresh() -> void:
 	_compute_solution()
+	SimulationState.clear_trajectory_prediction_stale()
+	_invalidate_geometry_cache()
+	impact_sound_pending = false
+	impact_sound_played = false
+	timewarp_selector.handle_prediction_refresh(solution.ship_points.size(), is_timewarp_prediction_stale())
 	reveal_elapsed = 0.0
 	ghost_elapsed = 0.0
 	is_revealing = true
@@ -130,96 +459,64 @@ func cycle_display_mode() -> void:
 
 	transition_active = false
 	current_view_offset = _get_target_view_offset()
-	queue_redraw()
+	_invalidate_geometry_cache()
+	_mark_visual_dirty()
 
 func cycle_center_mode() -> void:
+	var child_body_names: Array[StringName] = _get_available_focused_child_body_names()
 	if display_mode == DisplayMode.INCLINATION:
 		if center_mode == CenterMode.SHIP:
 			center_mode = CenterMode.PLANET
 		elif center_mode == CenterMode.PLANET:
-			center_mode = CenterMode.MOON
+			if child_body_names.is_empty():
+				center_mode = CenterMode.PLANET
+			else:
+				_select_default_focused_child_body()
+				center_mode = CenterMode.MOON
 		else:
-			center_mode = CenterMode.PLANET
+			if not _advance_focused_child_selection(1):
+				center_mode = CenterMode.PLANET
 
 		transition_active = false
 		current_view_offset = _get_target_view_offset()
-		queue_redraw()
+		_invalidate_geometry_cache()
+		_mark_visual_dirty()
 		return
 
 	match center_mode:
 		CenterMode.PLANET:
-			_begin_center_transition(CenterMode.MOON)
+			if child_body_names.is_empty():
+				_begin_center_transition(CenterMode.SHIP)
+			else:
+				_select_default_focused_child_body()
+				_begin_center_transition(CenterMode.MOON)
 		CenterMode.MOON:
-			_begin_center_transition(CenterMode.SHIP)
+			if _advance_focused_child_selection(1):
+				_begin_center_transition(CenterMode.MOON)
+			else:
+				_begin_center_transition(CenterMode.SHIP)
 		CenterMode.SHIP:
 			_begin_center_transition(CenterMode.PLANET)
 
-func _get_zoom_based_prediction_steps() -> int:
-	var zoom_alpha: float = inverse_lerp(max_pixels_per_unit, min_pixels_per_unit, pixels_per_unit)
-	zoom_alpha = clampf(zoom_alpha, 0.0, 1.0)
-	return int(round(lerpf(min_prediction_steps, max_prediction_steps, zoom_alpha)))
-
-func _get_period_based_prediction_steps() -> int:
-	var orbit: Dictionary = orbit_solver.solve_planet_orbit(
-		SimulationState.ship_pos,
-		SimulationState.ship_vel,
-		SimulationState.planet_pos,
-		SimulationState.planet_mu,
-		SimulationState.planet_radius
-	)
-
-	var is_bound: bool = orbit["is_bound_orbit"]
-	if not is_bound:
-		return prediction_steps
-
-	var period: float = orbit["orbital_period_value"]
-	if period <= 0.0:
-		return prediction_steps
-
-	var needed_time: float = period * period_prediction_margin
-	return int(ceil(needed_time / prediction_step_seconds))
-
-func _get_dynamic_prediction_steps() -> int:
-	var steps_from_zoom: int = _get_zoom_based_prediction_steps()
-	var steps_from_period: int = _get_period_based_prediction_steps()
-
-	var steps_to_use: int = max(steps_from_zoom, steps_from_period)
-
-	var quick_prediction: Dictionary = predictor.compute(
-		SimulationState.ship_pos,
-		SimulationState.ship_vel,
-		SimulationState.sim_time,
-		prediction_step_seconds,
-		steps_to_use,
-		extrema_window_radius,
-		radial_extrema_tolerance
-	)
-
-	var moon_ca: float = quick_prediction["moon_closest_approach_distance"]
-	var moon_tca: float = quick_prediction["moon_closest_approach_time"]
-	var strong_moon_threshold: float = SimulationState.moon_radius * strong_moon_ca_multiplier
-
-	if moon_ca > 0.0 and moon_ca <= strong_moon_threshold and moon_tca > 0.0:
-		var encounter_steps: int = int(ceil((moon_tca + moon_encounter_extra_time) / prediction_step_seconds))
-		steps_to_use = max(steps_to_use, encounter_steps)
-
-	steps_to_use = max(steps_to_use, min_prediction_steps)
-	steps_to_use = min(steps_to_use, max_prediction_steps)
-
-	return steps_to_use
-
 func _compute_solution() -> void:
-	var steps_to_use: int = _get_dynamic_prediction_steps()
-
-	var prediction: Dictionary = predictor.compute(
-		SimulationState.ship_pos,
-		SimulationState.ship_vel,
-		SimulationState.sim_time,
+	var broad_prediction_info: Dictionary = prediction_horizon.get_broad_prediction_info(
+		predictor,
+		orbit_solver,
 		prediction_step_seconds,
-		steps_to_use,
-		extrema_window_radius,
-		radial_extrema_tolerance
+		_get_prediction_horizon_settings()
 	)
+	var steps_to_use: int = broad_prediction_info.get("steps", prediction_steps)
+	var prediction: Dictionary = broad_prediction_info.get("quick_prediction", {})
+	if prediction.is_empty():
+		prediction = predictor.compute(
+			SimulationState.ship_pos,
+			SimulationState.ship_vel,
+			SimulationState.sim_time,
+			prediction_step_seconds,
+			steps_to_use,
+			extrema_window_radius,
+			radial_extrema_tolerance
+		)
 
 	var orbit: Dictionary = orbit_solver.solve_planet_orbit(
 		SimulationState.ship_pos,
@@ -232,14 +529,56 @@ func _compute_solution() -> void:
 	solution = TrajectorySolution.new()
 
 	solution.ship_points = prediction["ship_points"]
-	solution.moon_points = prediction["moon_points"]
+	solution.ship_velocities = prediction["ship_velocities"]
 	solution.closest_approach_distance = prediction["closest_approach_distance"]
 	solution.closest_approach_time = prediction["closest_approach_time"]
-	solution.moon_closest_approach_distance = prediction["moon_closest_approach_distance"]
-	solution.moon_closest_approach_time = prediction["moon_closest_approach_time"]
-	solution.moon_relative_speed_at_closest_approach = prediction["moon_relative_speed_at_closest_approach"]
-	solution.moon_closest_approach_index = prediction["moon_closest_approach_index"]
-	solution.moon_dominance = prediction["moon_dominance"]
+	var body_predictions: Dictionary = prediction.get("body_predictions", {})
+	if not body_predictions.is_empty():
+		for body_key in body_predictions.keys():
+			var body_name: StringName = StringName(String(body_key))
+			var body_prediction: Dictionary = body_predictions.get(body_key, {})
+			solution.set_body_parent_name(body_name, body_prediction.get("parent_body_name", &""))
+			solution.set_body_relative_points(body_name, _get_typed_vector3_array(body_prediction.get("relative_points", [])))
+			var body_closest_approach: Dictionary = body_prediction.get("closest_approach", {})
+			solution.set_body_closest_approach(
+				body_name,
+				body_closest_approach.get("distance", -1.0),
+				body_closest_approach.get("time", -1.0),
+				body_closest_approach.get("relative_speed", -1.0),
+				body_closest_approach.get("index", -1)
+			)
+			var body_dominance_mask: Array[bool] = []
+			for value in body_prediction.get("dominance_mask", []):
+				body_dominance_mask.append(bool(value))
+			solution.set_body_dominance_mask(body_name, body_dominance_mask)
+	elif prediction.has("moon_points"):
+		var moon_prediction: Dictionary = _get_body_prediction(prediction, MOON_BODY_NAME)
+		var moon_relative_points: Array[Vector3] = _get_body_prediction_relative_points(prediction, MOON_BODY_NAME)
+		if moon_relative_points.is_empty():
+			moon_relative_points = prediction["moon_points"]
+		var moon_closest_approach: Dictionary = _get_body_prediction_closest_approach(prediction, MOON_BODY_NAME)
+		if moon_closest_approach.is_empty():
+			moon_closest_approach = {
+				"distance": prediction["moon_closest_approach_distance"],
+				"time": prediction["moon_closest_approach_time"],
+				"relative_speed": prediction["moon_relative_speed_at_closest_approach"],
+				"index": prediction["moon_closest_approach_index"],
+			}
+		var moon_dominance_mask: Array[bool] = _get_body_prediction_dominance_mask(prediction, MOON_BODY_NAME)
+		if moon_dominance_mask.is_empty():
+			moon_dominance_mask = prediction["moon_dominance"]
+		solution.set_body_parent_name(MOON_BODY_NAME, PRIMARY_BODY_NAME)
+		if not moon_prediction.is_empty():
+			solution.set_body_parent_name(MOON_BODY_NAME, moon_prediction.get("parent_body_name", PRIMARY_BODY_NAME))
+		solution.set_body_relative_points(MOON_BODY_NAME, moon_relative_points)
+		solution.set_body_closest_approach(
+			MOON_BODY_NAME,
+			moon_closest_approach.get("distance", -1.0),
+			moon_closest_approach.get("time", -1.0),
+			moon_closest_approach.get("relative_speed", -1.0),
+			moon_closest_approach.get("index", -1)
+		)
+		solution.set_body_dominance_mask(MOON_BODY_NAME, moon_dominance_mask)
 
 	solution.predicted_periapsis_distance = prediction["predicted_periapsis_distance"]
 	solution.predicted_apoapsis_distance = prediction["predicted_apoapsis_distance"]
@@ -259,18 +598,78 @@ func _compute_solution() -> void:
 
 	solution.prediction_steps_used = steps_to_use
 	solution.prediction_duration_used = float(steps_to_use) * prediction_step_seconds
+	var ship_reference_body_name: StringName = SimulationState.get_ship_reference_body_name()
+	var trim_reference_body_name: StringName = ship_reference_body_name if ship_reference_body_name != PRIMARY_BODY_NAME else &""
+	var display_steps_to_use: int = prediction_horizon.get_continuity_trimmed_steps(
+		prediction,
+		trim_reference_body_name,
+		steps_to_use,
+		_get_prediction_horizon_settings()
+	)
+	solution.display_steps_used = clampi(display_steps_to_use, 2, solution.ship_points.size())
+	solution.display_duration_used = float(solution.display_steps_used) * prediction_step_seconds
+
+func _get_prediction_horizon_settings() -> Dictionary:
+	return {
+		"pixels_per_unit": pixels_per_unit,
+		"min_pixels_per_unit": min_pixels_per_unit,
+		"max_pixels_per_unit": max_pixels_per_unit,
+		"prediction_steps": prediction_steps,
+		"min_prediction_steps": min_prediction_steps,
+		"max_prediction_steps": max_prediction_steps,
+		"period_prediction_margin": period_prediction_margin,
+		"focused_child_body_name": _get_selected_focused_child_body_name(),
+		"focused_child_encounter_extra_characteristic_times": focused_child_encounter_extra_characteristic_times,
+		"focused_child_strong_ca_body_radii": focused_child_strong_ca_body_radii,
+		"focused_child_local_period_margin": focused_child_local_period_margin,
+		"focused_child_local_escape_characteristic_times": focused_child_local_escape_characteristic_times,
+		"focused_child_local_min_prediction_steps": focused_child_local_min_prediction_steps,
+		"focused_child_local_max_prediction_steps": focused_child_local_max_prediction_steps,
+		"moon_encounter_extra_time": moon_encounter_extra_time,
+		"strong_moon_ca_multiplier": strong_moon_ca_multiplier,
+		"moon_local_period_prediction_margin": moon_local_period_prediction_margin,
+		"moon_local_escape_prediction_seconds": moon_local_escape_prediction_seconds,
+		"moon_local_min_prediction_steps": moon_local_min_prediction_steps,
+		"moon_local_max_prediction_steps": moon_local_max_prediction_steps,
+		"closure_distance_ratio_tolerance": closure_distance_ratio_tolerance,
+		"closure_scan_chunk_steps": closure_scan_chunk_steps,
+		"closure_min_threshold_step_multiplier": closure_min_threshold_step_multiplier,
+		"extrema_window_radius": extrema_window_radius,
+		"radial_extrema_tolerance": radial_extrema_tolerance,
+	}
 
 func zoom_in() -> void:
-	pixels_per_unit = min(max_pixels_per_unit, pixels_per_unit + zoom_step)
+	var current_max_zoom: float = moon_max_pixels_per_unit if center_mode == CenterMode.MOON else max_pixels_per_unit
+	pixels_per_unit = min(current_max_zoom, pixels_per_unit + zoom_step)
+	_invalidate_geometry_cache()
 
 func zoom_out() -> void:
 	pixels_per_unit = max(min_pixels_per_unit, pixels_per_unit - zoom_step)
+	_invalidate_geometry_cache()
 
 func set_center_planet() -> void:
 	_begin_center_transition(CenterMode.PLANET)
 
 func set_center_moon() -> void:
+	_set_focused_child_body_name(MOON_BODY_NAME)
 	_begin_center_transition(CenterMode.MOON)
+
+func set_center_child_body(body_name: StringName) -> void:
+	if not _set_focused_child_body_name(body_name):
+		return
+	_begin_center_transition(CenterMode.MOON)
+
+func set_center_child_body_by_name(body_name: String) -> void:
+	set_center_child_body(StringName(body_name))
+
+func get_available_child_view_targets() -> PackedStringArray:
+	var result := PackedStringArray()
+	for body_name in _get_available_focused_child_body_names():
+		result.append(String(body_name))
+	return result
+
+func get_selected_child_view_target() -> String:
+	return String(_get_selected_focused_child_body_name())
 
 func set_center_ship() -> void:
 	_begin_center_transition(CenterMode.SHIP)
@@ -278,18 +677,21 @@ func set_center_ship() -> void:
 func _begin_center_transition(new_mode: CenterMode) -> void:
 	if display_mode == DisplayMode.INCLINATION and new_mode == CenterMode.SHIP:
 		new_mode = CenterMode.PLANET
+	if new_mode != CenterMode.MOON and pixels_per_unit > max_pixels_per_unit:
+		pixels_per_unit = max_pixels_per_unit
 
 	transition_start_offset = current_view_offset
 	transition_elapsed = 0.0
 	transition_active = true
 	center_mode = new_mode
+	_invalidate_geometry_cache()
 
 func get_center_mode_text() -> String:
 	match center_mode:
 		CenterMode.PLANET:
 			return "PLANET"
 		CenterMode.MOON:
-			return "MOON"
+			return _get_body_display_text(_get_selected_focused_child_body_name())
 		CenterMode.SHIP:
 			return "SHIP"
 	return "UNKNOWN"
@@ -314,13 +716,8 @@ func get_status_text() -> String:
 
 func get_reference_body_text() -> String:
 	if display_mode == DisplayMode.INCLINATION:
-		match center_mode:
-			CenterMode.PLANET:
-				return "PLANET"
-			CenterMode.MOON:
-				return "MOON"
-			CenterMode.SHIP:
-				return "PLANET"
+		var body_name: StringName = body_focus_projection.get_inclination_reference_body_name(center_mode, _get_selected_focused_child_body_name())
+		return _get_body_display_text(body_name)
 	return "PLANET"
 
 func get_closest_approach_distance() -> float:
@@ -364,32 +761,413 @@ func get_prediction_duration_used() -> float:
 	return solution.prediction_duration_used
 
 func get_ship_altitude() -> float:
-	var r: float = (SimulationState.ship_pos - SimulationState.planet_pos).length()
-	return r - SimulationState.planet_radius
+	var reference_body_name: StringName = SimulationState.get_ship_reference_body_name()
+	var r: float = (SimulationState.ship_pos - SimulationState.get_body_position(reference_body_name)).length()
+	return r - SimulationState.get_body_radius(reference_body_name)
 
 func get_ship_speed() -> float:
 	return SimulationState.ship_vel.length()
 
 func get_ship_radial_velocity() -> float:
-	var rel: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
+	var rel: Vector3 = SimulationState.ship_pos - SimulationState.get_ship_reference_body_pos()
 	var rhat: Vector3 = rel.normalized()
-	return SimulationState.ship_vel.dot(rhat)
+	return (SimulationState.ship_vel - SimulationState.get_ship_reference_body_vel()).dot(rhat)
 
 func get_ship_tangential_velocity() -> float:
-	var rel: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
+	var rel: Vector3 = SimulationState.ship_pos - SimulationState.get_ship_reference_body_pos()
 	var rhat: Vector3 = rel.normalized()
-	var radial_v: float = SimulationState.ship_vel.dot(rhat)
+	var rel_vel: Vector3 = SimulationState.ship_vel - SimulationState.get_ship_reference_body_vel()
+	var radial_v: float = rel_vel.dot(rhat)
 	var radial_vec: Vector3 = rhat * radial_v
-	return (SimulationState.ship_vel - radial_vec).length()
+	return (rel_vel - radial_vec).length()
+
+func get_focused_child_label_text() -> String:
+	return _get_body_display_text(_get_selected_focused_child_body_name())
+
+func get_focused_child_closest_approach_distance() -> float:
+	return _get_focused_child_closest_approach().get("distance", -1.0)
+
+func get_focused_child_closest_approach_time() -> float:
+	return _get_focused_child_closest_approach().get("time", -1.0)
+
+func get_focused_child_relative_speed_at_closest_approach() -> float:
+	return _get_focused_child_closest_approach().get("relative_speed", -1.0)
 
 func get_moon_closest_approach_distance() -> float:
-	return solution.moon_closest_approach_distance
+	return _get_moon_closest_approach().get("distance", -1.0)
 
 func get_moon_closest_approach_time() -> float:
-	return solution.moon_closest_approach_time
+	return _get_moon_closest_approach().get("time", -1.0)
 
 func get_moon_relative_speed_at_closest_approach() -> float:
-	return solution.moon_relative_speed_at_closest_approach
+	return _get_moon_closest_approach().get("relative_speed", -1.0)
+
+func _get_moon_relative_points() -> Array[Vector3]:
+	return solution.get_body_relative_points(MOON_BODY_NAME)
+
+func _get_moon_dominance_mask() -> Array[bool]:
+	return solution.get_body_dominance_mask(MOON_BODY_NAME)
+
+func _get_moon_closest_approach() -> Dictionary:
+	return solution.get_body_closest_approach(MOON_BODY_NAME)
+
+func _get_active_body_encounter() -> Dictionary:
+	if not cached_focused_child_encounter.is_empty():
+		return cached_focused_child_encounter
+	if not cached_active_body_encounter.is_empty():
+		return cached_active_body_encounter
+	var body_name: StringName = _get_selected_focused_child_body_name()
+	if body_name != &"":
+		return solution.get_body_encounter(body_name)
+	return {}
+
+func _get_focused_child_body_name() -> StringName:
+	return cached_focused_child_body_name if cached_focused_child_body_name != &"" else _get_selected_focused_child_body_name()
+
+func _get_focused_child_draw_points() -> Array[Vector3]:
+	return cached_focused_child_draw_points
+
+func _get_focused_child_relative_points() -> Array[Vector3]:
+	var encounter: Dictionary = _get_active_body_encounter()
+	if not encounter.is_empty():
+		return _get_typed_vector3_array(encounter.get("relative_points", []))
+	var body_name: StringName = _get_focused_child_body_name()
+	if body_name != &"":
+		return solution.get_body_relative_points(body_name)
+	return []
+
+func _get_focused_child_closest_approach() -> Dictionary:
+	var encounter: Dictionary = _get_active_body_encounter()
+	if not encounter.is_empty():
+		return encounter.get("closest_approach", {})
+	var body_name: StringName = _get_focused_child_body_name()
+	if body_name != &"":
+		return solution.get_body_closest_approach(body_name)
+	return {}
+
+func _is_currently_in_focused_child_dominance() -> bool:
+	var body_name: StringName = _get_focused_child_body_name()
+	if body_name == &"":
+		return false
+	if SimulationState.has_method("is_ship_in_body_dominance"):
+		return SimulationState.is_ship_in_body_dominance(body_name)
+	return false
+
+func _get_active_local_segment() -> Dictionary:
+	var encounter_segment: Dictionary = _get_active_body_encounter().get("local_segment", {})
+	if not encounter_segment.is_empty():
+		return encounter_segment
+	return {
+		"entry_index": cached_focused_child_entry_index,
+		"exit_index": cached_focused_child_exit_index,
+		"points": cached_focused_child_local_points.duplicate(),
+		"source_indices": cached_focused_child_local_source_indices.duplicate(),
+	}
+
+func _get_active_markers() -> Dictionary:
+	var encounter_markers: Dictionary = _get_active_body_encounter().get("markers", {})
+	if not encounter_markers.is_empty():
+		return encounter_markers
+	return {
+		"local_ca_index": cached_focused_child_local_ca_index,
+		"local_pe_index": cached_focused_child_local_pe_index,
+		"local_ap_index": cached_focused_child_local_ap_index,
+		"show_local_ca_marker": cached_show_focused_child_local_ca_marker,
+		"show_escape_marker": cached_show_focused_child_escape_marker,
+		"escape_marker_local_index": cached_focused_child_escape_marker_local_index,
+	}
+
+func _get_active_impact() -> Dictionary:
+	var encounter_impact: Dictionary = _get_active_body_encounter().get("impact", {})
+	if not encounter_impact.is_empty():
+		return encounter_impact
+	var impact_source_index: int = -1
+	if cached_focused_child_local_impact_found and cached_focused_child_local_impact_index >= 0 and cached_focused_child_local_impact_index < cached_focused_child_local_source_indices.size():
+		impact_source_index = cached_focused_child_local_source_indices[cached_focused_child_local_impact_index]
+	return {
+		"found": cached_focused_child_local_impact_found,
+		"index": cached_focused_child_local_impact_index,
+		"source_index": impact_source_index,
+	}
+
+func _get_active_local_points() -> Array[Vector3]:
+	return _get_typed_vector3_array(_get_active_local_segment().get("points", []))
+
+func _get_active_local_source_indices() -> Array[int]:
+	return _get_typed_int_array(_get_active_local_segment().get("source_indices", []))
+
+func _get_typed_vector3_array(values) -> Array[Vector3]:
+	var typed_values: Array[Vector3] = []
+	for value in values:
+		typed_values.append(value)
+	return typed_values
+
+func _get_typed_int_array(values) -> Array[int]:
+	var typed_values: Array[int] = []
+	for value in values:
+		typed_values.append(int(value))
+	return typed_values
+
+func set_focus_active(active: bool) -> void:
+	focus_active = active
+	timewarp_selector.ensure_valid(_get_timewarp_point_limit(), is_timewarp_prediction_stale())
+	_mark_visual_dirty()
+
+func is_timewarp_enabled() -> bool:
+	return timewarp_selector.enabled
+
+func is_timewarp_prediction_stale() -> bool:
+	return SimulationState.is_trajectory_prediction_stale()
+
+func toggle_timewarp_enabled() -> bool:
+	if is_timewarp_prediction_stale():
+		timewarp_selector.reset()
+		_mark_visual_dirty()
+		return false
+
+	var enabled_now: bool = timewarp_selector.set_enabled(
+		not timewarp_selector.enabled,
+		_get_timewarp_point_limit(),
+		is_timewarp_prediction_stale()
+	)
+	if not enabled_now:
+		if SimulationState.is_targeted_warp_active():
+			SimulationState.cancel_targeted_warp()
+	_mark_visual_dirty()
+	return enabled_now
+
+func is_timewarp_selection_available() -> bool:
+	return timewarp_selector.is_selection_available(
+		is_timewarp_prediction_stale(),
+		focus_active,
+		display_mode == DisplayMode.TRAJECTORY,
+		not solution.ship_points.is_empty(),
+		is_revealing
+	)
+
+func move_warp_selection(direction: int, coarse: bool = false) -> bool:
+	if not is_timewarp_selection_available():
+		return false
+	if SimulationState.is_targeted_warp_active():
+		return false
+
+	var step: int = _get_selection_step_size(coarse)
+	var point_limit: int = _get_timewarp_point_limit()
+	timewarp_selector.ensure_valid(point_limit, is_timewarp_prediction_stale())
+	if not timewarp_selector.move_selection(direction, point_limit, step):
+		return false
+	_mark_visual_dirty()
+	return true
+
+func confirm_warp_selection() -> bool:
+	if not is_timewarp_selection_available():
+		return false
+	if SimulationState.is_targeted_warp_active():
+		return false
+
+	var point_limit: int = _get_timewarp_point_limit()
+	timewarp_selector.ensure_valid(point_limit, is_timewarp_prediction_stale())
+	if timewarp_selector.selection_index <= 0:
+		return false
+
+	var target_index: int = timewarp_selector.get_target_index(point_limit)
+	if target_index < 0:
+		return false
+	var target_sim_time: float = SimulationState.sim_time + timewarp_selector.get_selected_time_seconds(prediction_step_seconds)
+	var target_ship_pos: Vector3 = SimulationState.planet_pos + solution.ship_points[target_index]
+	var target_ship_vel: Vector3 = SimulationState.ship_vel
+	if target_index < solution.ship_velocities.size():
+		target_ship_vel = solution.ship_velocities[target_index]
+
+	var path_positions: Array[Vector3] = [SimulationState.ship_pos]
+	var path_velocities: Array[Vector3] = [SimulationState.ship_vel]
+	for i in range(timewarp_selector.reference_index + 1, target_index + 1):
+		path_positions.append(SimulationState.planet_pos + solution.ship_points[i])
+		if i < solution.ship_velocities.size():
+			path_velocities.append(solution.ship_velocities[i])
+		else:
+			path_velocities.append(target_ship_vel)
+
+	return SimulationState.begin_targeted_warp_to_path(
+		target_sim_time,
+		path_positions,
+		path_velocities,
+		prediction_step_seconds
+	)
+
+func cancel_warp_selection() -> void:
+	if not timewarp_selector.enabled:
+		_mark_visual_dirty()
+		return
+	if SimulationState.is_targeted_warp_active():
+		SimulationState.cancel_targeted_warp()
+	else:
+		timewarp_selector.cancel_selection(_get_timewarp_point_limit(), is_timewarp_prediction_stale())
+	_mark_visual_dirty()
+
+func _get_selection_step_size(coarse: bool) -> int:
+	return timewarp_selector.get_selection_step_size(
+		solution.display_duration_used,
+		prediction_step_seconds,
+		timewarp_fine_step_fraction_of_horizon,
+		timewarp_coarse_step_fraction_of_horizon,
+		coarse
+	)
+
+func _get_selection_step_seconds(coarse: bool) -> int:
+	return timewarp_selector.get_selection_step_seconds(
+		solution.display_duration_used,
+		prediction_step_seconds,
+		timewarp_fine_step_fraction_of_horizon,
+		timewarp_coarse_step_fraction_of_horizon,
+		coarse
+	)
+
+func _draw_selection_box(pos: Vector2, color: Color) -> void:
+	var size: float = 11.0
+	draw_rect(Rect2(pos - Vector2(size, size), Vector2(size * 2.0, size * 2.0)), Color(color.r, color.g, color.b, 0.18), true)
+	draw_rect(Rect2(pos - Vector2(size, size), Vector2(size * 2.0, size * 2.0)), color, false, 2.0)
+	draw_circle(pos, 3.0, color)
+
+func _get_selected_screen_point(center: Vector2, focused_child_rel_planet: Vector3) -> Dictionary:
+	var point_limit: int = _get_timewarp_point_limit()
+	if timewarp_selector.selection_index < 0 or solution.ship_points.is_empty() or point_limit <= 0:
+		return {
+			"valid": false
+		}
+
+	if timewarp_selector.selection_index == 0:
+		return {
+			"valid": true,
+			"screen": _to_screen(SimulationState.ship_pos - SimulationState.planet_pos, center)
+		}
+
+	var target_index: int = timewarp_selector.get_target_index(point_limit)
+	if target_index < 0 or target_index >= solution.ship_points.size() or target_index >= point_limit:
+		return {
+			"valid": false
+		}
+
+	var selected_world: Vector3 = solution.ship_points[target_index]
+	var selected_screen: Vector2 = _to_screen(selected_world, center)
+
+	if center_mode == CenterMode.MOON:
+		var moon_view_screen: Dictionary = _get_moon_view_screen_point_for_source_index(target_index, center, focused_child_rel_planet)
+		if moon_view_screen.get("valid", false):
+			selected_screen = moon_view_screen.get("screen", selected_screen)
+
+	return {
+		"valid": true,
+		"screen": selected_screen
+	}
+
+func _get_moon_view_screen_point_for_source_index(source_index: int, center: Vector2, focused_child_rel_planet: Vector3) -> Dictionary:
+	if source_index < 0:
+		return {"valid": false}
+
+	var active_local_points: Array[Vector3] = _get_active_local_points()
+	var active_local_source_indices: Array[int] = _get_active_local_source_indices()
+	for i in range(active_local_source_indices.size()):
+		if active_local_source_indices[i] != source_index:
+			continue
+		if i >= active_local_points.size():
+			break
+		return {
+			"valid": true,
+			"screen": _to_screen(active_local_points[i] + focused_child_rel_planet, center)
+		}
+
+	return {"valid": false}
+
+func _draw_timewarp_legend(rect_size: Vector2, color: Color) -> void:
+	if display_mode != DisplayMode.TRAJECTORY or not focus_active:
+		return
+
+	var font := ThemeDB.fallback_font
+	var font_size := 18
+	var line_spacing: float = 24.0
+
+	var lines: Array[String] = []
+	var prediction_stale: bool = is_timewarp_prediction_stale()
+	if prediction_stale:
+		lines.append("TIME WARP: OFF: NEEDS REFRESH")
+	elif timewarp_selector.enabled:
+		lines.append("TIME WARP: ON : 'T'")
+		var default_step_seconds: int = _get_selection_step_seconds(false)
+		var coarse_step_seconds: int = _get_selection_step_seconds(true)
+		var current_step_seconds: int = coarse_step_seconds if Input.is_key_pressed(KEY_SHIFT) else default_step_seconds
+		var selected_time: float = timewarp_selector.get_selected_time_seconds(prediction_step_seconds)
+
+		lines.append("TARGET: T+%.0f s" % selected_time)
+		lines.append("AHEAD %d s : ']'" % current_step_seconds)
+		lines.append("BACK  %d s : '['" % current_step_seconds)
+		lines.append("SHIFT: STEP x5")
+		lines.append("ENTER: WARP   ESC: STOP")
+	else:
+		lines.append("TIME WARP: OFF: 'T'")
+
+	var max_width: float = 0.0
+	for line in lines:
+		var line_size: Vector2 = font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+		max_width = max(max_width, line_size.x)
+
+	var left_x: float = rect_size.x - max_width - 60.0
+	var line_y: float = rect_size.y - 28.0 - line_spacing * float(lines.size() - 1)
+
+	for i in range(lines.size()):
+		draw_string(
+			font,
+			Vector2(left_x, line_y + line_spacing * float(i)),
+			lines[i],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			font_size,
+			color
+		)
+
+func _resolve_refresh_sound_player() -> void:
+	if refresh_sound_player == null:
+		refresh_sound_player = get_tree().root.find_child("BeepPlayer3D", true, false)
+
+func _resolve_impact_sound_player() -> void:
+	if impact_sound_player != null:
+		return
+	if impact_sound_player_path.is_empty():
+		return
+	impact_sound_player = get_node_or_null(impact_sound_player_path)
+
+func _play_timewarp_sound() -> void:
+	_resolve_refresh_sound_player()
+	if refresh_sound_player == null:
+		return
+	if not refresh_sound_player.has_method("start_refresh"):
+		return
+
+	var sound_duration: float = SimulationState.get_targeted_warp_real_duration_seconds()
+	refresh_sound_player.start_refresh(max(sound_duration, 0.1))
+
+func _play_refresh_sound(duration: float) -> void:
+	_resolve_refresh_sound_player()
+	if refresh_sound_player == null:
+		return
+	if not refresh_sound_player.has_method("start_refresh"):
+		return
+
+	refresh_sound_player.start_refresh(max(duration, 0.1))
+
+func _stop_timewarp_sound() -> void:
+	_resolve_refresh_sound_player()
+	if refresh_sound_player == null:
+		return
+	if refresh_sound_player.has_method("stop_refresh"):
+		refresh_sound_player.stop_refresh()
+
+func _play_impact_sound() -> void:
+	_resolve_impact_sound_player()
+	if impact_sound_player == null:
+		return
+	if impact_sound_player.has_method("play"):
+		impact_sound_player.play()
 
 func _draw_dashed_polyline(points: Array[Vector2], color: Color, width: float, dash_length: int, gap_length: int, max_count: int) -> void:
 	if points.size() < 2:
@@ -407,25 +1185,13 @@ func _draw_dashed_polyline(points: Array[Vector2], color: Color, width: float, d
 		i += dash_length + gap_length
 
 func _get_target_view_offset() -> Vector2:
-	match center_mode:
-		CenterMode.PLANET:
-			return Vector2.ZERO
-
-		CenterMode.MOON:
-			var moon_rel_planet: Vector3 = SimulationState.moon_pos - SimulationState.planet_pos
-			return Vector2(-moon_rel_planet.x, moon_rel_planet.z)
-
-		CenterMode.SHIP:
-			var ship_rel_planet: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
-			return Vector2(-ship_rel_planet.x, ship_rel_planet.z)
-
-	return Vector2.ZERO
+	return body_focus_projection.get_target_view_offset(center_mode, SimulationState.ship_pos, _get_selected_focused_child_body_name())
 
 func _project_planet_frame(world_planet_frame: Vector3) -> Vector2:
-	return Vector2(world_planet_frame.x, -world_planet_frame.z)
+	return body_focus_projection.project_planet_frame(world_planet_frame)
 
 func _to_screen(world_planet_frame: Vector3, center: Vector2) -> Vector2:
-	return center + (_project_planet_frame(world_planet_frame) + current_view_offset) * pixels_per_unit
+	return body_focus_projection.to_screen(world_planet_frame, center, current_view_offset, pixels_per_unit)
 
 func _draw_marker_square(pos: Vector2, marker_size: float, color: Color) -> void:
 	var half := marker_size * 0.5
@@ -435,6 +1201,55 @@ func _draw_marker_square(pos: Vector2, marker_size: float, color: Color) -> void
 		false,
 		1.25
 	)
+
+func _draw_impact_marker(pos: Vector2, marker_size: float, color: Color) -> void:
+	var half: float = marker_size * 0.5
+	draw_line(pos + Vector2(-half, -half), pos + Vector2(half, half), Color(color.r, color.g, color.b, 0.2), 4.5)
+	draw_line(pos + Vector2(-half, half), pos + Vector2(half, -half), Color(color.r, color.g, color.b, 0.2), 4.5)
+	draw_line(pos + Vector2(-half, -half), pos + Vector2(half, half), color, 2.2)
+	draw_line(pos + Vector2(-half, half), pos + Vector2(half, -half), color, 2.2)
+
+func _draw_projected_arrow(start: Vector2, tip: Vector2, color: Color, width: float, head_length: float = 10.0, head_width: float = 8.0) -> void:
+	var delta: Vector2 = tip - start
+	var screen_length: float = delta.length()
+	if screen_length <= 0.0001:
+		return
+
+	var direction: Vector2 = delta / screen_length
+	var usable_head_length: float = min(head_length, screen_length * 0.45)
+	if usable_head_length < 3.0:
+		draw_line(start, tip, color, width)
+		return
+
+	var usable_head_width: float = min(head_width, usable_head_length * 0.9)
+	var perpendicular: Vector2 = Vector2(-direction.y, direction.x)
+	var head_base: Vector2 = tip - direction * usable_head_length
+	draw_line(start, head_base, color, width)
+
+	var arrow_points := PackedVector2Array([
+		tip,
+		head_base + perpendicular * (usable_head_width * 0.5),
+		head_base - perpendicular * (usable_head_width * 0.5)
+	])
+	draw_colored_polygon(arrow_points, color)
+
+func _find_first_nonzero_projected_delta(points: Array[Vector3], start_index: int) -> Vector2:
+	var start_i: int = clampi(start_index, 0, max(points.size() - 1, 0))
+	for i in range(start_i + 1, points.size()):
+		var delta: Vector2 = _project_planet_frame(points[i] - points[start_i])
+		if delta.length_squared() > 0.0001:
+			return delta
+	return Vector2.ZERO
+
+func _find_arrow_start_index(points: PackedVector2Array, min_distance: float) -> int:
+	if points.size() < 2:
+		return -1
+
+	var tip: Vector2 = points[points.size() - 1]
+	for i in range(points.size() - 2, -1, -1):
+		if tip.distance_to(points[i]) >= min_distance:
+			return i
+	return max(points.size() - 2, 0)
 
 func _draw_marker_label(pos: Vector2, text_value: String, color: Color, reference_screen: Vector2) -> void:
 	var font := ThemeDB.fallback_font
@@ -465,37 +1280,451 @@ func _draw_marker_label(pos: Vector2, text_value: String, color: Color, referenc
 		color
 	)
 
+func _invalidate_geometry_cache() -> void:
+	geometry_cache_dirty = true
+	_invalidate_projected_render_cache()
+	_mark_visual_dirty()
+
+func _collapse_timewarp_if_stale() -> void:
+	if not timewarp_selector.collapse_if_stale(is_timewarp_prediction_stale()):
+		return
+	if SimulationState.is_targeted_warp_active():
+		SimulationState.cancel_targeted_warp()
+	_mark_visual_dirty()
+
+func _update_timewarp_selector() -> void:
+	timewarp_selector.update_reference_index(
+		SimulationState.ship_pos - SimulationState.planet_pos,
+		solution.ship_points,
+		is_timewarp_prediction_stale(),
+		SimulationState.is_targeted_warp_active()
+	)
+	timewarp_selector.ensure_valid(_get_timewarp_point_limit(), is_timewarp_prediction_stale())
+
+func _get_timewarp_point_limit() -> int:
+	var point_limit: int = solution.ship_points.size()
+	if point_limit <= 0:
+		return 0
+
+	var active_local_segment: Dictionary = _get_active_local_segment()
+	var active_impact: Dictionary = _get_active_impact()
+	var active_exit_index: int = active_local_segment.get("exit_index", -1)
+
+	if center_mode == CenterMode.MOON and active_exit_index >= 0:
+		point_limit = min(point_limit, active_exit_index + 1)
+	elif center_mode == CenterMode.MOON and cached_focused_child_exit_index >= 0:
+		point_limit = min(point_limit, cached_focused_child_exit_index + 1)
+
+	if cached_ship_impact_found and cached_ship_impact_index >= 0:
+		point_limit = min(point_limit, cached_ship_impact_index + 1)
+
+	var active_impact_source_index: int = active_impact.get("source_index", -1)
+	if active_impact.get("found", false) and active_impact_source_index >= 0:
+		point_limit = min(point_limit, active_impact_source_index + 1)
+	elif cached_focused_child_local_impact_found and cached_focused_child_local_impact_index >= 0 and cached_focused_child_local_impact_index < cached_focused_child_local_source_indices.size():
+		point_limit = min(point_limit, cached_focused_child_local_source_indices[cached_focused_child_local_impact_index] + 1)
+
+	return max(point_limit, 1)
+
+func _ensure_projected_render_cache(
+	center: Vector2,
+	visible_count: int,
+	main_visible_count: int,
+	active_local_points: Array[Vector3],
+	active_local_source_indices: Array[int],
+	live_moon_anchor: Vector3
+) -> void:
+	var focused_child_name: StringName = _get_selected_focused_child_body_name()
+	var needs_rebuild: bool = projected_render_dirty
+	needs_rebuild = needs_rebuild or cached_projected_center != center
+	needs_rebuild = needs_rebuild or cached_projected_view_offset != current_view_offset
+	needs_rebuild = needs_rebuild or absf(cached_projected_pixels_per_unit - pixels_per_unit) > 0.000001
+	needs_rebuild = needs_rebuild or cached_projected_visible_count != visible_count
+	needs_rebuild = needs_rebuild or cached_projected_main_visible_count != main_visible_count
+	needs_rebuild = needs_rebuild or cached_projected_center_mode != center_mode
+	needs_rebuild = needs_rebuild or cached_projected_focused_child_body_name != focused_child_name
+	needs_rebuild = needs_rebuild or cached_projected_local_anchor != live_moon_anchor
+
+	if not needs_rebuild:
+		debug_projection_cache_hits_since_log += 1
+		return
+
+	projected_render_dirty = false
+	cached_projected_center = center
+	cached_projected_view_offset = current_view_offset
+	cached_projected_pixels_per_unit = pixels_per_unit
+	cached_projected_visible_count = visible_count
+	cached_projected_main_visible_count = main_visible_count
+	cached_projected_center_mode = center_mode
+	cached_projected_focused_child_body_name = focused_child_name
+	cached_projected_local_anchor = live_moon_anchor
+	cached_projected_ship_points = PackedVector2Array()
+	cached_projected_ship_run_draws.clear()
+	cached_projected_local_points = PackedVector2Array()
+	cached_projected_local_run_draws.clear()
+	cached_projected_child_ghosts.clear()
+
+	var projected_points_built: int = 0
+
+	if main_visible_count > 1:
+		cached_projected_ship_points = _project_points_range(cached_ship_source_points, 0, main_visible_count - 1, center)
+		projected_points_built += cached_projected_ship_points.size()
+		cached_projected_ship_run_draws = _build_projected_run_cache(cached_ship_source_points, cached_ship_runs, center, main_visible_count)
+		for run in cached_projected_ship_run_draws:
+			var projected: PackedVector2Array = run.get("points", PackedVector2Array())
+			projected_points_built += projected.size()
+
+	if center_mode == CenterMode.MOON:
+		var visible_local_count: int = 0
+		for source_index in active_local_source_indices:
+			if source_index < visible_count:
+				visible_local_count += 1
+			else:
+				break
+
+		if visible_local_count > 1:
+			cached_projected_local_points = _project_points_range(active_local_points, 0, visible_local_count - 1, center, live_moon_anchor)
+			projected_points_built += cached_projected_local_points.size()
+			var live_moon_world_points: Array[Vector3] = []
+			for i in range(visible_local_count):
+				live_moon_world_points.append(active_local_points[i] + live_moon_anchor)
+			var live_moon_runs: Array[Dictionary] = _build_hidden_runs(live_moon_world_points)
+			cached_projected_local_run_draws = _build_projected_run_cache(active_local_points, live_moon_runs, center, visible_local_count, live_moon_anchor)
+			for run in cached_projected_local_run_draws:
+				var projected: PackedVector2Array = run.get("points", PackedVector2Array())
+				projected_points_built += projected.size()
+	else:
+		for child_body_name in _get_available_focused_child_body_names():
+			var child_points: Array[Vector3] = solution.get_body_relative_points(child_body_name)
+			if child_points.size() <= 1 or visible_count <= 1:
+				continue
+			var child_draw_points: PackedVector2Array = _project_points_range_decimated(
+				child_points,
+				0,
+				min(visible_count - 1, child_points.size() - 1),
+				center
+			)
+			if child_draw_points.size() > 1:
+				cached_projected_child_ghosts[child_body_name] = child_draw_points
+				projected_points_built += child_draw_points.size()
+
+	debug_last_projected_points_built = projected_points_built
+	debug_projection_cache_rebuilds_since_log += 1
+
+func _rebuild_geometry_cache_if_needed() -> void:
+	if not geometry_cache_dirty:
+		return
+
+	geometry_cache_dirty = false
+	_invalidate_projected_render_cache()
+	cached_ship_source_points.clear()
+	cached_ship_runs.clear()
+	cached_main_visible_count = 0
+	cached_ship_impact_found = false
+	cached_ship_impact_index = -1
+	cached_focused_child_body_name = &""
+	cached_focused_child_draw_points.clear()
+	cached_focused_child_local_points.clear()
+	cached_focused_child_local_source_indices.clear()
+	cached_focused_child_local_ca_index = -1
+	cached_focused_child_local_pe_index = -1
+	cached_focused_child_local_ap_index = -1
+	cached_focused_child_local_impact_found = false
+	cached_focused_child_local_impact_index = -1
+	cached_show_focused_child_local_ca_marker = false
+	cached_show_focused_child_escape_marker = false
+	cached_focused_child_escape_marker_local_index = -1
+	cached_focused_child_entry_index = -1
+	cached_focused_child_exit_index = -1
+	cached_currently_in_focused_child_dominance = false
+	cached_focused_child_encounter = {}
+	cached_active_body_encounter = {}
+	cached_currently_in_focused_child_dominance = _is_currently_in_focused_child_dominance()
+
+	var cache: Dictionary = trajectory_projection_cache.build_cache(
+		solution,
+		center_mode,
+		_get_selected_focused_child_body_name(),
+		cached_currently_in_focused_child_dominance,
+		local_orbit_markers,
+		extrema_window_radius,
+		closure_distance_ratio_tolerance,
+		closure_scan_chunk_steps,
+		closure_min_threshold_step_multiplier
+	)
+	var ship_source_points = cache.get("ship_source_points", [])
+	var ship_runs = cache.get("ship_runs", [])
+	var focused_child_draw_points = cache.get("focused_child_draw_points", [])
+	var focused_child_local_points = cache.get("focused_child_local_points", [])
+	var focused_child_local_source_indices = cache.get("focused_child_local_source_indices", [])
+
+	for point in ship_source_points:
+		cached_ship_source_points.append(point)
+	for run in ship_runs:
+		cached_ship_runs.append(run)
+	cached_main_visible_count = cache.get("main_visible_count", 0)
+	cached_ship_impact_found = cache.get("ship_impact_found", false)
+	cached_ship_impact_index = cache.get("ship_impact_index", -1)
+	cached_focused_child_body_name = cache.get("focused_child_body_name", &"")
+	cached_focused_child_encounter = cache.get("focused_child_encounter", {}).duplicate(true)
+	cached_active_body_encounter = cache.get("active_body_encounter", {}).duplicate(true)
+	for point in focused_child_draw_points:
+		cached_focused_child_draw_points.append(point)
+	for point in focused_child_local_points:
+		cached_focused_child_local_points.append(point)
+	for source_index in focused_child_local_source_indices:
+		cached_focused_child_local_source_indices.append(source_index)
+	cached_focused_child_local_ca_index = cache.get("focused_child_local_ca_index", -1)
+	cached_focused_child_local_pe_index = cache.get("focused_child_local_pe_index", -1)
+	cached_focused_child_local_ap_index = cache.get("focused_child_local_ap_index", -1)
+	cached_focused_child_local_impact_found = cache.get("focused_child_local_impact_found", false)
+	cached_focused_child_local_impact_index = cache.get("focused_child_local_impact_index", -1)
+	cached_show_focused_child_local_ca_marker = cache.get("show_focused_child_local_ca_marker", false)
+	cached_show_focused_child_escape_marker = cache.get("show_focused_child_escape_marker", false)
+	cached_focused_child_escape_marker_local_index = cache.get("focused_child_escape_marker_local_index", -1)
+	cached_focused_child_entry_index = cache.get("focused_child_entry_index", -1)
+	cached_focused_child_exit_index = cache.get("focused_child_exit_index", -1)
+	cached_currently_in_focused_child_dominance = cache.get("currently_in_focused_child_dominance", cached_currently_in_focused_child_dominance)
+
+	var has_impact_marker: bool = cached_ship_impact_found or cached_focused_child_local_impact_found
+	if not impact_sound_played:
+		impact_sound_pending = has_impact_marker
+	_mark_visual_dirty()
+
+func _update_impact_sound_trigger() -> void:
+	if not impact_sound_pending or impact_sound_played:
+		return
+	if not _is_cached_impact_marker_visible():
+		return
+	_stop_timewarp_sound()
+	_play_impact_sound()
+	impact_sound_played = true
+	impact_sound_pending = false
+
+func _is_cached_impact_marker_visible() -> bool:
+	if display_mode != DisplayMode.TRAJECTORY:
+		return false
+	if solution.ship_points.size() <= 1:
+		return false
+
+	var ratio: float = clampf(reveal_elapsed / reveal_duration, 0.0, 1.0) if reveal_duration > 0.0 else 1.0
+	var display_step_cap: int = min(solution.ship_points.size(), max(2, solution.display_steps_used))
+	var visible_count: int = max(2, int(round((display_step_cap - 1) * ratio)) + 1)
+	visible_count = min(visible_count, display_step_cap)
+
+	if cached_ship_impact_found:
+		var main_visible_count: int = visible_count
+		var active_entry_index: int = _get_active_local_segment().get("entry_index", -1)
+		if center_mode == CenterMode.MOON and active_entry_index >= 0 and active_entry_index < visible_count:
+			main_visible_count = max(2, active_entry_index + 1)
+		elif center_mode == CenterMode.MOON and cached_focused_child_entry_index >= 0 and cached_focused_child_entry_index < visible_count:
+			main_visible_count = max(2, cached_focused_child_entry_index + 1)
+		main_visible_count = min(main_visible_count, cached_ship_source_points.size())
+		if cached_ship_impact_index >= 0 and cached_ship_impact_index < main_visible_count:
+			return true
+
+	var active_local_segment: Dictionary = _get_active_local_segment()
+	var active_impact: Dictionary = _get_active_impact()
+	if center_mode == CenterMode.MOON and active_impact.get("found", false) and active_local_segment.get("entry_index", -1) >= 0:
+		var active_local_source_indices: Array[int] = _get_active_local_source_indices()
+		var visible_local_count: int = 0
+		for source_index in active_local_source_indices:
+			if source_index < visible_count:
+				visible_local_count += 1
+			else:
+				break
+		if visible_local_count > 1 and active_impact.get("index", -1) >= 0 and active_impact.get("index", -1) < visible_local_count:
+			return true
+
+	if center_mode == CenterMode.MOON and cached_focused_child_local_impact_found and cached_focused_child_entry_index >= 0:
+		var visible_local_count: int = 0
+		for source_index in cached_focused_child_local_source_indices:
+			if source_index < visible_count:
+				visible_local_count += 1
+			else:
+				break
+		if visible_local_count > 1 and cached_focused_child_local_impact_index >= 0 and cached_focused_child_local_impact_index < visible_local_count:
+			return true
+
+	return false
+
+func _build_hidden_runs(points: Array[Vector3]) -> Array[Dictionary]:
+	var runs: Array[Dictionary] = []
+	if points.size() < 2:
+		return runs
+
+	var current_hidden: bool = false
+	var current_start: int = 0
+	var initialized: bool = false
+
+	for i in range(points.size() - 1):
+		var mid_3d: Vector3 = (points[i] + points[i + 1]) * 0.5
+		var projected_r: float = Vector2(mid_3d.x, mid_3d.z).length()
+		var hidden: bool = projected_r < SimulationState.planet_radius and mid_3d.y < 0.0
+
+		if not initialized:
+			current_hidden = hidden
+			current_start = i
+			initialized = true
+			continue
+
+		if hidden != current_hidden:
+			runs.append({
+				"start": current_start,
+				"end": i,
+				"hidden": current_hidden
+			})
+			current_start = i
+			current_hidden = hidden
+
+	if initialized:
+		runs.append({
+			"start": current_start,
+			"end": points.size() - 1,
+			"hidden": current_hidden
+		})
+
+	return runs
+
+func _project_points_range(points: Array[Vector3], start_index: int, end_index: int, center: Vector2, anchor: Vector3 = Vector3.ZERO) -> PackedVector2Array:
+	var projected := PackedVector2Array()
+	if points.is_empty():
+		return projected
+
+	var start_i: int = clampi(start_index, 0, points.size() - 1)
+	var end_i: int = clampi(end_index, 0, points.size() - 1)
+	if end_i < start_i:
+		return projected
+
+	for i in range(start_i, end_i + 1):
+		projected.append(_to_screen(points[i] + anchor, center))
+
+	return projected
+
+func _project_points_range_decimated(points: Array[Vector3], start_index: int, end_index: int, center: Vector2, anchor: Vector3 = Vector3.ZERO) -> PackedVector2Array:
+	var projected := PackedVector2Array()
+	if points.is_empty():
+		return projected
+
+	var start_i: int = clampi(start_index, 0, points.size() - 1)
+	var end_i: int = clampi(end_index, 0, points.size() - 1)
+	if end_i < start_i:
+		return projected
+
+	var stride: int = _get_projected_draw_stride(points, start_i, end_i, anchor)
+	for i in range(start_i, end_i + 1, stride):
+		projected.append(_to_screen(points[i] + anchor, center))
+
+	if projected.is_empty() or projected[projected.size() - 1] != _to_screen(points[end_i] + anchor, center):
+		projected.append(_to_screen(points[end_i] + anchor, center))
+
+	return projected
+
+func _get_projected_draw_stride(points: Array[Vector3], start_index: int, end_index: int, anchor: Vector3 = Vector3.ZERO) -> int:
+	if points.is_empty():
+		return 1
+
+	var start_i: int = clampi(start_index, 0, points.size() - 1)
+	var end_i: int = clampi(end_index, 0, points.size() - 1)
+	if end_i <= start_i:
+		return 1
+
+	var max_radius: float = 0.0
+	var sample_step: int = max(1, int(ceil(float(end_i - start_i + 1) / 96.0)))
+	for i in range(start_i, end_i + 1, sample_step):
+		max_radius = max(max_radius, (points[i] + anchor).length())
+	max_radius = max(max_radius, (points[end_i] + anchor).length())
+
+	var body_radius_scale: float = max(SimulationState.planet_radius, 1.0)
+	var orbit_scale: float = max_radius / body_radius_scale
+	if orbit_scale <= 3.0:
+		return 1
+
+	var normalized_scale: float = orbit_scale / 3.0
+	var stride: int = int(round(pow(normalized_scale, 1.6)))
+	return clampi(stride, 1, 100)
+
+func _draw_projected_runs(points: Array[Vector3], runs: Array[Dictionary], center: Vector2, max_points: int, line_width: float, dash_length: int = 8, gap_length: int = 5, anchor: Vector3 = Vector3.ZERO) -> void:
+	if points.size() < 2 or max_points < 2:
+		return
+
+	var point_limit: int = min(points.size(), max_points)
+	for run in runs:
+		var run_start: int = int(run.get("start", 0))
+		var run_end: int = int(run.get("end", 0))
+		if run_start >= point_limit - 1:
+			continue
+
+		run_end = min(run_end, point_limit - 1)
+		if run_end <= run_start:
+			continue
+
+		var projected: PackedVector2Array = _project_points_range_decimated(points, run_start, run_end, center, anchor)
+		if projected.size() < 2:
+			continue
+
+		var run_color: Color = run.get("color", Color(0.6, 1.0, 0.7))
+		if bool(run.get("hidden", false)):
+			_draw_dashed_polyline(projected, run_color, line_width, dash_length, gap_length, projected.size())
+		else:
+			draw_polyline(projected, run_color, line_width)
+
+func _build_projected_run_cache(points: Array[Vector3], runs: Array[Dictionary], center: Vector2, max_points: int, anchor: Vector3 = Vector3.ZERO) -> Array[Dictionary]:
+	var projected_runs: Array[Dictionary] = []
+	if points.size() < 2 or max_points < 2:
+		return projected_runs
+
+	var point_limit: int = min(points.size(), max_points)
+	for run in runs:
+		var run_start: int = int(run.get("start", 0))
+		var run_end: int = int(run.get("end", 0))
+		if run_start >= point_limit - 1:
+			continue
+
+		run_end = min(run_end, point_limit - 1)
+		if run_end <= run_start:
+			continue
+
+		var projected: PackedVector2Array = _project_points_range_decimated(points, run_start, run_end, center, anchor)
+		if projected.size() < 2:
+			continue
+
+		projected_runs.append({
+			"points": projected,
+			"color": run.get("color", Color(0.6, 1.0, 0.7)),
+			"hidden": bool(run.get("hidden", false))
+		})
+
+	return projected_runs
+
+func _draw_projected_run_cache(projected_runs: Array[Dictionary], line_width: float, dash_length: int = 8, gap_length: int = 5) -> void:
+	for run in projected_runs:
+		var projected: PackedVector2Array = run.get("points", PackedVector2Array())
+		if projected.size() < 2:
+			continue
+		var run_color: Color = run.get("color", Color(0.6, 1.0, 0.7))
+		if bool(run.get("hidden", false)):
+			_draw_dashed_polyline(projected, run_color, line_width, dash_length, gap_length, projected.size())
+		else:
+			draw_polyline(projected, run_color, line_width)
+
 func _get_reference_body_pos() -> Vector3:
-	match center_mode:
-		CenterMode.MOON:
-			return SimulationState.moon_pos
-		_:
-			return SimulationState.planet_pos
+	return _get_reference_body_state().get("pos", Vector3.ZERO)
 
 func _get_reference_body_vel() -> Vector3:
-	match center_mode:
-		CenterMode.MOON:
-			return SimulationState.moon_vel
-		_:
-			return SimulationState.planet_vel
+	return _get_reference_body_state().get("vel", Vector3.ZERO)
 
 func _get_reference_body_up() -> Vector3:
-	match center_mode:
-		CenterMode.MOON:
-			if SimulationState.moon_up.length_squared() > 0.0001:
-				return SimulationState.moon_up.normalized()
-			return Vector3.UP
-		_:
-			if SimulationState.planet_up.length_squared() > 0.0001:
-				return SimulationState.planet_up.normalized()
-			return Vector3.UP
+	return _get_reference_body_state().get("up", Vector3.UP)
 
 func _get_reference_body_radius() -> float:
-	match center_mode:
-		CenterMode.MOON:
-			return SimulationState.moon_radius
-		_:
-			return SimulationState.planet_radius
+	return _get_reference_body_state().get("radius", 0.0)
+
+func _get_reference_body_state() -> Dictionary:
+	return body_focus_projection.get_inclination_reference_body_state(center_mode, _get_selected_focused_child_body_name())
+
+func _is_currently_in_moon_dominance() -> bool:
+	return SimulationState.is_ship_in_moon_dominance()
 
 func _draw_glow_line(a: Vector2, b: Vector2, color: Color, width: float) -> void:
 	draw_line(a, b, Color(color.r, color.g, color.b, 0.12), width + 6.0)
@@ -726,18 +1955,23 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	)
 
 func _draw() -> void:
+	debug_draw_calls_since_log += 1
 	var rect_size: Vector2 = get_viewport_rect().size
 	var center: Vector2 = rect_size * 0.5
 	var font := ThemeDB.fallback_font
 	var big_font_size := 30
 	var text_green := Color(0.35, 1.0, 0.35)
+	var rendered_visible_count: int = 0
+	var rendered_main_visible_count: int = 0
+	var rendered_ghost_alpha: float = _get_current_ghost_alpha()
 	
 	draw_rect(Rect2(Vector2.ZERO, rect_size), Color(0.02, 0.04, 0.02), true)
 
 	if display_mode == DisplayMode.INCLINATION:
 		_draw_inclination_instrument(rect_size, center)
+		_record_draw_state(0, 0, rendered_ghost_alpha)
 		return
-	var plan_title: String = "PLAN"
+	var plan_title: String = "BENDING TIME..." if SimulationState.is_targeted_warp_active() else "PLAN"
 	var plan_title_size: Vector2 = font.get_string_size(plan_title, HORIZONTAL_ALIGNMENT_LEFT, -1, big_font_size)
 	draw_string(
 		font,
@@ -748,12 +1982,23 @@ func _draw() -> void:
 		big_font_size,
 		text_green
 	)
+	var view_text: String = "VIEW: " + get_center_mode_text()
+	draw_string(
+		font,
+		Vector2(60.0, 46.0),
+		view_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		big_font_size - 8,
+		text_green
+	)
 	draw_line(Vector2(center.x, 0.0), Vector2(center.x, rect_size.y), Color(0.05, 0.12, 0.05), 1.0)
 	draw_line(Vector2(0.0, center.y), Vector2(rect_size.x, center.y), Color(0.05, 0.12, 0.05), 1.0)
 
+	var focused_child_name: StringName = _get_selected_focused_child_body_name()
 	var planet_world := Vector3.ZERO
 	var planet_screen := _to_screen(planet_world, center)
-	var planet_radius_px: float = max(3.0, SimulationState.planet_radius * pixels_per_unit)
+	var planet_radius_px: float = SimulationState.planet_radius * pixels_per_unit
 
 	for r in [250.0, 1000.0, 2500.0]:
 		draw_arc(planet_screen, r * pixels_per_unit, 0.0, TAU, 96, Color(0.08, 0.22, 0.08), 1.0)
@@ -762,25 +2007,38 @@ func _draw() -> void:
 	draw_line(planet_screen + Vector2(0.0, -10.0), planet_screen + Vector2(0.0, 10.0), Color(0.1, 0.45, 0.1), 1.0)
 
 	draw_circle(planet_screen, planet_radius_px, Color(0.2, 0.65, 1.0))
-
-	var moon_rel_planet: Vector3 = SimulationState.moon_pos - SimulationState.planet_pos
-	var moon_screen := _to_screen(moon_rel_planet, center)
-
-	draw_arc(planet_screen, SimulationState.moon_orbit_radius * pixels_per_unit, 0.0, TAU, 128, Color(0.5, 0.5, 0.8), 1.0)
-	draw_circle(moon_screen, max(3.0, SimulationState.moon_radius * pixels_per_unit), Color(0.8, 0.8, 0.95))
+	var focused_child_rel_planet: Vector3 = Vector3.ZERO
+	var focused_child_screen: Vector2 = planet_screen
+	for child_body_name in _get_available_focused_child_body_names():
+		var child_rel_planet: Vector3 = SimulationState.get_body_position(child_body_name) - SimulationState.get_body_position(PRIMARY_BODY_NAME)
+		var child_orbit_radius: float = child_rel_planet.length()
+		var child_screen: Vector2 = _to_screen(child_rel_planet, center)
+		var orbit_color: Color = Color(0.5, 0.5, 0.8)
+		var body_color: Color = Color(0.8, 0.8, 0.95)
+		if child_body_name == focused_child_name:
+			orbit_color = Color(0.65, 0.75, 1.0)
+			body_color = Color(0.92, 0.92, 1.0)
+			focused_child_rel_planet = child_rel_planet
+			focused_child_screen = child_screen
+		if child_orbit_radius > 0.0001:
+			draw_arc(planet_screen, child_orbit_radius * pixels_per_unit, 0.0, TAU, 128, orbit_color, 1.0)
+		draw_circle(child_screen, SimulationState.get_body_radius(child_body_name) * pixels_per_unit, body_color)
 
 	var ship_rel_planet: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
 	var ship_screen := _to_screen(ship_rel_planet, center)
 
-	var r3: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
-	var v3: Vector3 = SimulationState.ship_vel
-	var body_up: Vector3 = SimulationState.planet_up.normalized()
+	var reference_body_pos: Vector3 = SimulationState.get_ship_reference_body_pos()
+	var reference_body_vel: Vector3 = SimulationState.get_ship_reference_body_vel()
+	var body_up: Vector3 = SimulationState.get_ship_reference_body_up()
+	var r3: Vector3 = SimulationState.ship_pos - reference_body_pos
+	var v3: Vector3 = SimulationState.ship_vel - reference_body_vel
 
 	var vel: float = v3.length()
 	var vel_text: String = "VEL: %.3f NU/s" % vel
 
-	var radius: float = r3.length()
-	var r_text: String = "ALT: %.3f NU" % radius
+	var body_radius: float = SimulationState.get_body_radius(SimulationState.get_ship_reference_body_name())
+	var altitude: float = r3.length() - body_radius
+	var r_text: String = "ALT: %.3f NU" % altitude
 
 	var h3: Vector3 = r3.cross(v3)
 	var inc: float = 0.0
@@ -817,14 +2075,14 @@ func _draw() -> void:
 	)
 	draw_circle(ship_screen, 4.0, Color.WHITE)
 
-	var vel_world: Vector3 = SimulationState.ship_vel
+	var vel_world: Vector3 = v3
 	if vel_world.length() > 0.001:
 		var vel_tip_world: Vector3 = ship_rel_planet + vel_world.normalized() * (40.0 / pixels_per_unit)
 		var vel_tip_screen: Vector2 = _to_screen(vel_tip_world, center)
 		var vel_screen_delta: Vector2 = vel_tip_screen - ship_screen
 
 		if vel_screen_delta.length_squared() > 0.0001:
-			draw_line(ship_screen, vel_tip_screen, Color.YELLOW, 2.0)
+			_draw_projected_arrow(ship_screen, vel_tip_screen, Color.YELLOW, 2.0, 10.0, 8.0)
 
 	if ship != null:
 		var facing_world: Vector3 = (ship.global_transform.basis.z).normalized()
@@ -834,157 +2092,190 @@ func _draw() -> void:
 		var facing_screen_delta: Vector2 = facing_tip_screen - ship_screen
 
 		if facing_screen_delta.length_squared() > 0.0001:
-			draw_line(ship_screen, facing_tip_screen, Color(0.75, 1.0, 1.0), 2.0)
+			_draw_projected_arrow(ship_screen, facing_tip_screen, Color(0.75, 1.0, 1.0), 2.0, 10.0, 8.0)
 
 	if solution.ship_points.size() > 1:
+		var focused_child_relative_points: Array[Vector3] = _get_focused_child_relative_points()
+		var focused_child_closest_approach: Dictionary = _get_focused_child_closest_approach()
+		var active_local_segment: Dictionary = _get_active_local_segment()
+		var active_markers: Dictionary = _get_active_markers()
+		var active_impact: Dictionary = _get_active_impact()
+		var active_local_points: Array[Vector3] = _get_active_local_points()
+		var active_local_source_indices: Array[int] = _get_active_local_source_indices()
+		var focused_child_closest_approach_index: int = focused_child_closest_approach.get("index", -1)
 		var ratio: float = clampf(reveal_elapsed / reveal_duration, 0.0, 1.0) if reveal_duration > 0.0 else 1.0
-		var visible_count: int = max(2, int(round((solution.ship_points.size() - 1) * ratio)) + 1)
-		visible_count = min(visible_count, solution.ship_points.size())
+		var display_step_cap: int = min(solution.ship_points.size(), max(2, solution.display_steps_used))
+		var visible_count: int = max(2, int(round((display_step_cap - 1) * ratio)) + 1)
+		visible_count = min(visible_count, display_step_cap)
+		var ghost_alpha: float = _get_current_ghost_alpha()
+		var reveal_complete: bool = (not is_revealing) and visible_count >= display_step_cap
+		var moon_entry_index: int = active_local_segment.get("entry_index", cached_focused_child_entry_index)
+		var moon_exit_index: int = active_local_segment.get("exit_index", cached_focused_child_exit_index)
+		var currently_in_focused_child_dominance: bool = _is_currently_in_focused_child_dominance()
+		var copied_ca_screen: Vector2 = Vector2.ZERO
+		var copied_ca_valid: bool = false
+		var main_visible_count: int = visible_count
+		if center_mode == CenterMode.MOON and moon_entry_index >= 0 and moon_entry_index < visible_count:
+			main_visible_count = max(2, moon_entry_index + 1)
+		main_visible_count = min(main_visible_count, cached_ship_source_points.size())
+		_ensure_projected_render_cache(
+			center,
+			visible_count,
+			main_visible_count,
+			active_local_points,
+			active_local_source_indices,
+			focused_child_rel_planet
+		)
+		rendered_visible_count = visible_count
+		rendered_main_visible_count = main_visible_count
+		rendered_ghost_alpha = ghost_alpha
+		_draw_projected_run_cache(cached_projected_ship_run_draws, 2.0)
+		var ship_pts: PackedVector2Array = cached_projected_ship_points
 
-		var ship_pts := PackedVector2Array()
-		for i in range(visible_count):
-			ship_pts.append(_to_screen(solution.ship_points[i], center))
-
-		var traj_run_points: Array[Vector2] = []
-		var traj_run_hidden: bool = false
-		var traj_run_color: Color = Color(0.6, 1.0, 0.7)
-
-		for i in range(visible_count - 1):
-			var seg_color := Color(0.6, 1.0, 0.7)
-
-			if i < solution.moon_dominance.size() and solution.moon_dominance[i]:
-				seg_color = Color(0.65, 0.75, 1.0)
-
-			var mid_3d: Vector3 = (solution.ship_points[i] + solution.ship_points[i + 1]) * 0.5
-			var projected_r: float = Vector2(mid_3d.x, mid_3d.z).length()
-			var behind_planet: bool = projected_r < SimulationState.planet_radius and mid_3d.y < 0.0
-
-			if traj_run_points.is_empty():
-				traj_run_hidden = behind_planet
-				traj_run_color = seg_color
-				traj_run_points.append(ship_pts[i])
-				traj_run_points.append(ship_pts[i + 1])
-			elif behind_planet == traj_run_hidden and seg_color == traj_run_color:
-				traj_run_points.append(ship_pts[i + 1])
-			else:
-				if traj_run_hidden:
-					_draw_dashed_polyline(traj_run_points, traj_run_color, 2.0, 8, 5, traj_run_points.size())
+		var drew_moon_orbit_markers: bool = false
+		if center_mode == CenterMode.MOON and moon_entry_index >= 0:
+			var moon_intercept_color: Color = Color(1.0, 0.92, 0.72)
+			var moon_escape_color: Color = Color(0.55, 0.95, 1.0)
+			var moon_escape_marker_color: Color = Color(1.0, 0.82, 0.25)
+			var moon_intercept_width: float = 1.6
+			var live_moon_anchor: Vector3 = focused_child_rel_planet
+			var visible_local_count: int = 0
+			for source_index in active_local_source_indices:
+				if source_index < visible_count:
+					visible_local_count += 1
 				else:
-					draw_polyline(PackedVector2Array(traj_run_points), traj_run_color, 2.0)
-
-				traj_run_points.clear()
-				traj_run_hidden = behind_planet
-				traj_run_color = seg_color
-				traj_run_points.append(ship_pts[i])
-				traj_run_points.append(ship_pts[i + 1])
-
-		if not traj_run_points.is_empty():
-			if traj_run_hidden:
-				_draw_dashed_polyline(traj_run_points, traj_run_color, 2.0, 8, 5, traj_run_points.size())
-			else:
-				draw_polyline(PackedVector2Array(traj_run_points), traj_run_color, 2.0)
-
-		if center_mode == CenterMode.MOON:
-			var moon_pts := PackedVector2Array()
-			var moon_world_pts: Array[Vector3] = []
-			var copied_ca_screen: Vector2 = Vector2.ZERO
-			var copied_ca_valid: bool = false
-
-			for i in range(visible_count):
-				if i >= solution.moon_dominance.size():
 					break
 
-				if solution.moon_dominance[i]:
-					var rel_to_moon: Vector3 = solution.ship_points[i] - solution.moon_points[i]
-					var copied_world: Vector3 = moon_rel_planet + rel_to_moon
-					var copied_screen: Vector2 = _to_screen(copied_world, center)
+			if visible_local_count > 1:
+				_draw_projected_run_cache(cached_projected_local_run_draws, moon_intercept_width, 8, 5)
+				var moon_pts: PackedVector2Array = cached_projected_local_points
 
-					moon_pts.append(copied_screen)
-					moon_world_pts.append(copied_world)
+				if active_markers.get("show_escape_marker", cached_show_focused_child_escape_marker) and not active_impact.get("found", cached_focused_child_local_impact_found):
+					var local_exit_index: int = min(
+						active_markers.get("escape_marker_local_index", cached_focused_child_escape_marker_local_index) if active_markers.get("escape_marker_local_index", cached_focused_child_escape_marker_local_index) >= 0 else visible_local_count - 1,
+						min(visible_local_count - 1, moon_pts.size() - 1)
+					)
+					if local_exit_index >= 0 and local_exit_index < moon_pts.size():
+						var moon_exit_screen: Vector2 = moon_pts[local_exit_index]
+						_draw_marker_square(moon_exit_screen, 6.0, moon_escape_marker_color)
+						_draw_marker_label(moon_exit_screen, "ESC", moon_escape_marker_color, focused_child_screen)
+				if (
+					reveal_complete
+					and not active_impact.get("found", cached_focused_child_local_impact_found)
+					and moon_exit_index >= 0
+					and moon_exit_index < visible_count
+				):
+					var tail_start_index: int = moon_exit_index
+					var tail_end_index: int = min(visible_count - 1, moon_exit_index + moon_escape_tail_steps)
+					if tail_end_index > tail_start_index and tail_start_index < focused_child_relative_points.size():
+						var moon_escape_tail_screen := PackedVector2Array()
+						for i in range(tail_start_index, tail_end_index + 1):
+							if i >= solution.ship_points.size() or i >= focused_child_relative_points.size():
+								break
+							var ship_rel_moon: Vector3 = solution.ship_points[i] - focused_child_relative_points[i]
+							moon_escape_tail_screen.append(_to_screen(ship_rel_moon + live_moon_anchor, center))
+						if moon_escape_tail_screen.size() > 1:
+							draw_polyline(moon_escape_tail_screen, moon_escape_color, 1.6)
+							var arrow_start_index: int = _find_arrow_start_index(moon_escape_tail_screen, 12.0)
+							if arrow_start_index >= 0 and arrow_start_index < moon_escape_tail_screen.size() - 1:
+								_draw_projected_arrow(
+									moon_escape_tail_screen[arrow_start_index],
+									moon_escape_tail_screen[moon_escape_tail_screen.size() - 1],
+								moon_escape_color,
+								1.6,
+								10.0,
+								8.0
+							)
+				elif (
+					reveal_complete
+					and moon_exit_index < 0
+					and not active_impact.get("found", cached_focused_child_local_impact_found)
+					and active_markers.get("show_escape_marker", cached_show_focused_child_escape_marker)
+					and moon_pts.size() > 1
+				):
+					var fallback_tail_tip: Vector2 = moon_pts[moon_pts.size() - 1]
+					var fallback_tail_start: Vector2 = moon_pts[max(0, moon_pts.size() - 2)]
+					var fallback_delta: Vector2 = fallback_tail_tip - fallback_tail_start
+					if fallback_delta.length_squared() > 0.0001:
+						var fallback_dir: Vector2 = fallback_delta.normalized()
+						var fallback_tip: Vector2 = fallback_tail_tip + fallback_dir * 36.0
+						draw_line(fallback_tail_tip, fallback_tip, moon_escape_color, 1.6)
+						_draw_projected_arrow(
+							fallback_tail_tip,
+							fallback_tip,
+							moon_escape_color,
+							1.6,
+							10.0,
+							8.0
+						)
 
-					if i == solution.moon_closest_approach_index:
-						copied_ca_screen = copied_screen
-						copied_ca_valid = true
+				var local_ca_index: int = active_markers.get("local_ca_index", cached_focused_child_local_ca_index)
+				if active_markers.get("show_local_ca_marker", cached_show_focused_child_local_ca_marker) and local_ca_index >= 0 and local_ca_index < moon_pts.size():
+					copied_ca_screen = moon_pts[local_ca_index]
+					copied_ca_valid = true
 
-			var moon_run_points: Array[Vector2] = []
-			for i in range(moon_pts.size() - 1):
-				var mid_3d: Vector3 = (moon_world_pts[i] + moon_world_pts[i + 1]) * 0.5
-				var projected_r: float = Vector2(mid_3d.x, mid_3d.z).length()
-				var behind_planet: bool = projected_r < SimulationState.planet_radius and mid_3d.y < 0.0
+				var local_pe_index: int = active_markers.get("local_pe_index", cached_focused_child_local_pe_index)
+				var local_ap_index: int = active_markers.get("local_ap_index", cached_focused_child_local_ap_index)
+				if not is_revealing and local_pe_index >= 0 and local_pe_index < moon_pts.size():
+					var moon_pe_screen: Vector2 = moon_pts[local_pe_index]
+					_draw_marker_square(moon_pe_screen, 6.0, Color(0.892, 1.0, 0.35))
+					_draw_marker_label(moon_pe_screen, "PE", Color(0.892, 1.0, 0.35), focused_child_screen)
+					drew_moon_orbit_markers = true
 
-				if moon_run_points.is_empty():
-					moon_run_points.append(moon_pts[i])
-					moon_run_points.append(moon_pts[i + 1])
-				elif behind_planet:
-					moon_run_points.append(moon_pts[i + 1])
-				else:
-					if moon_run_points.size() > 1:
-						_draw_dashed_polyline(moon_run_points, Color(1.0, 1.0, 1.0), 2.5, 8, 5, moon_run_points.size())
-					moon_run_points.clear()
+				if not is_revealing and local_ap_index >= 0 and local_ap_index < moon_pts.size():
+					var moon_ap_screen: Vector2 = moon_pts[local_ap_index]
+					_draw_marker_square(moon_ap_screen, 6.0, Color(0.35, 0.75, 1.0))
+					_draw_marker_label(moon_ap_screen, "AP", Color(0.35, 0.75, 1.0), focused_child_screen)
+					drew_moon_orbit_markers = true
 
-			if moon_run_points.size() > 1:
-				_draw_dashed_polyline(moon_run_points, Color(1.0, 1.0, 1.0), 2.5, 8, 5, moon_run_points.size())
+				var local_impact_index: int = active_impact.get("index", cached_focused_child_local_impact_index)
+				if active_impact.get("found", cached_focused_child_local_impact_found) and local_impact_index >= 0 and local_impact_index < moon_pts.size():
+					_draw_impact_marker(moon_pts[local_impact_index], 10.0, Color(1.0, 0.25, 0.25))
 
-			var moon_visible_run: Array[Vector2] = []
-			for i in range(moon_pts.size() - 1):
-				var mid_3d: Vector3 = (moon_world_pts[i] + moon_world_pts[i + 1]) * 0.5
-				var projected_r: float = Vector2(mid_3d.x, mid_3d.z).length()
-				var behind_planet: bool = projected_r < SimulationState.planet_radius and mid_3d.y < 0.0
+		if center_mode != CenterMode.MOON:
+			var child_body_names: Array[StringName] = _get_available_focused_child_body_names()
+			for child_index in range(child_body_names.size()):
+				var child_body_name: StringName = child_body_names[child_index]
+				var child_draw_points: PackedVector2Array = cached_projected_child_ghosts.get(child_body_name, PackedVector2Array())
+				if child_draw_points.size() <= 1:
+					continue
 
-				if behind_planet:
-					if moon_visible_run.size() > 1:
-						draw_polyline(PackedVector2Array(moon_visible_run), Color(1.0, 1.0, 1.0), 2.5)
-					moon_visible_run.clear()
-				else:
-					if moon_visible_run.is_empty():
-						moon_visible_run.append(moon_pts[i])
-					moon_visible_run.append(moon_pts[i + 1])
+				var is_selected_child: bool = child_body_name == focused_child_name
+				var ghost_color: Color = _get_child_ghost_color(child_index, child_body_names.size(), is_selected_child)
+				var ghost_line_color: Color = ghost_color
+				ghost_line_color.a = ghost_alpha
+				var ghost_dot_outer: Color = Color(0.02, 0.02, 0.08, ghost_alpha * 0.9)
+				var ghost_dot_inner: Color = ghost_color
+				ghost_dot_inner.a = ghost_alpha
+				var ghost_line_width: float = 2.8 if is_selected_child else 2.2
 
-			if moon_visible_run.size() > 1:
-				draw_polyline(PackedVector2Array(moon_visible_run), Color(1.0, 1.0, 1.0), 2.5)
+				var dash_i: int = 0
+				while dash_i < child_draw_points.size() - 1:
+					var dash_end: int = min(dash_i + ghost_dash_length, child_draw_points.size() - 1)
+					for j in range(dash_i, dash_end):
+						draw_line(child_draw_points[j], child_draw_points[j + 1], ghost_line_color, ghost_line_width)
+					dash_i += ghost_dash_length + ghost_gap_length
 
-			if not is_revealing and copied_ca_valid:
-				draw_circle(copied_ca_screen, 4.0, Color(0.892, 1.0, 0.35))
-				_draw_marker_label(copied_ca_screen, "PE", Color(0.892, 1.0, 0.35), moon_screen)
-
-		var moon_draw_points: Array[Vector2] = []
-		for i in range(visible_count):
-			moon_draw_points.append(_to_screen(solution.moon_points[i], center))
-
-		var ghost_alpha: float = 1.0
-		if ghost_lifetime_seconds > 0.0:
-			ghost_alpha = clampf(1.0 - (ghost_elapsed / ghost_lifetime_seconds), 0.0, 1.0)
-
-		var dash_i: int = 0
-		while dash_i < visible_count - 1:
-			var dash_end: int = min(dash_i + ghost_dash_length, visible_count - 1)
-
-			for j in range(dash_i, dash_end):
-				var col := Color(0.0, 0.0, 0.9, ghost_alpha)
-				draw_line(moon_draw_points[j], moon_draw_points[j + 1], col, 2.5)
-
-			dash_i += ghost_dash_length + ghost_gap_length
-
-		if visible_count > 0:
-			var moving_moon_dot: Vector2 = moon_draw_points[visible_count - 1]
-			draw_circle(moving_moon_dot, 8.0, Color(0.02, 0.02, 0.08, ghost_alpha * 0.9))
-			draw_circle(moving_moon_dot, 5.0, Color(0.0, 0.0, 1.0, ghost_alpha))
+				var moving_child_dot: Vector2 = child_draw_points[child_draw_points.size() - 1]
+				draw_circle(moving_child_dot, 8.0 if is_selected_child else 7.0, ghost_dot_outer)
+				draw_circle(moving_child_dot, 5.0 if is_selected_child else 4.0, ghost_dot_inner)
 
 		if not is_revealing:
-			var moon_intercept: bool = false
-			for i in range(min(visible_count, solution.moon_dominance.size())):
-				if solution.moon_dominance[i]:
-					moon_intercept = true
-					break
+			var moon_intercept: bool = moon_entry_index >= 0 and moon_entry_index < visible_count
 
-			if moon_intercept and solution.moon_closest_approach_index >= 0 and solution.moon_closest_approach_index < visible_count:
-				var ca_screen: Vector2 = ship_pts[solution.moon_closest_approach_index]
-				draw_circle(ca_screen, 4.0, Color(1.0, 0.55, 0.15))
-				_draw_marker_label(ca_screen, "CA", Color(1.0, 0.55, 0.15), moon_screen)
+			if moon_intercept and focused_child_closest_approach_index >= 0 and focused_child_closest_approach_index < visible_count:
+				var ca_color: Color = Color(1.0, 0.55, 0.15)
+				if center_mode == CenterMode.MOON and copied_ca_valid and not drew_moon_orbit_markers:
+					draw_circle(copied_ca_screen, 4.0, ca_color)
+					_draw_marker_label(copied_ca_screen, "CA", ca_color, focused_child_screen)
+				elif not currently_in_focused_child_dominance and focused_child_closest_approach_index < ship_pts.size():
+					var ca_screen: Vector2 = ship_pts[focused_child_closest_approach_index]
+					draw_circle(ca_screen, 4.0, ca_color)
+					_draw_marker_label(ca_screen, "CA", ca_color, focused_child_screen)
 
-		if solution.predicted_periapsis_index >= 0 and solution.predicted_periapsis_index < visible_count:
+		if not cached_ship_impact_found and not (center_mode == CenterMode.MOON and moon_entry_index >= 0 and moon_entry_index < visible_count) and solution.predicted_periapsis_index >= 0 and solution.predicted_periapsis_index < ship_pts.size():
 			var pe_screen: Vector2 = ship_pts[solution.predicted_periapsis_index]
-			var pe_point: Vector3 = solution.ship_points[solution.predicted_periapsis_index]
+			var pe_point: Vector3 = cached_ship_source_points[solution.predicted_periapsis_index]
 			var pe_proj_r: float = Vector2(pe_point.x, pe_point.z).length()
 			var pe_hidden: bool = pe_proj_r < SimulationState.planet_radius and pe_point.y < 0.0
 
@@ -1000,10 +2291,10 @@ func _draw() -> void:
 			_draw_marker_square(pe_screen, 6.0, Color(0.892, 1.0, 0.35, 1.0))
 			_draw_marker_label(pe_screen, "PE", Color(0.892, 1.0, 0.35), planet_screen)
 
-		if solution.orbit_classification != "ESCAPE" and solution.orbit_classification != "IMPACT":
-			if solution.predicted_apoapsis_index >= 0 and solution.predicted_apoapsis_index < visible_count:
+		if not cached_ship_impact_found and not (center_mode == CenterMode.MOON and moon_entry_index >= 0 and moon_entry_index < visible_count) and solution.orbit_classification != "ESCAPE" and solution.orbit_classification != "IMPACT":
+			if solution.predicted_apoapsis_index >= 0 and solution.predicted_apoapsis_index < ship_pts.size():
 				var ap_screen: Vector2 = ship_pts[solution.predicted_apoapsis_index]
-				var ap_point: Vector3 = solution.ship_points[solution.predicted_apoapsis_index]
+				var ap_point: Vector3 = cached_ship_source_points[solution.predicted_apoapsis_index]
 				var ap_proj_r: float = Vector2(ap_point.x, ap_point.z).length()
 				var ap_hidden: bool = ap_proj_r < SimulationState.planet_radius and ap_point.y < 0.0
 
@@ -1018,3 +2309,14 @@ func _draw() -> void:
 
 				_draw_marker_square(ap_screen, 6.0, Color(0.35, 0.75, 1.0))
 				_draw_marker_label(ap_screen, "AP", Color(0.35, 0.75, 1.0), planet_screen)
+
+		if cached_ship_impact_found and cached_ship_impact_index >= 0 and cached_ship_impact_index < ship_pts.size():
+			_draw_impact_marker(ship_pts[cached_ship_impact_index], 10.0, Color(1.0, 0.25, 0.25))
+
+		if is_timewarp_selection_available() and timewarp_selector.selection_index >= 0:
+			var selected_point: Dictionary = _get_selected_screen_point(center, focused_child_rel_planet)
+			if selected_point.get("valid", false):
+				_draw_selection_box(selected_point["screen"], Color(1.0, 0.82, 0.25))
+
+	_draw_timewarp_legend(rect_size, text_green)
+	_record_draw_state(rendered_visible_count, rendered_main_visible_count, rendered_ghost_alpha)

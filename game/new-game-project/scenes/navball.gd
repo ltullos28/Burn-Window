@@ -33,6 +33,15 @@ var normal_marker: Node3D
 var anti_normal_marker: Node3D
 var nose_marker: Node3D
 
+func _get_reference_body_name() -> StringName:
+	return SimulationState.get_ship_reference_body_name()
+
+func _get_reference_body_pos() -> Vector3:
+	return SimulationState.get_body_position(_get_reference_body_name())
+
+func _get_reference_body_vel() -> Vector3:
+	return SimulationState.get_body_velocity(_get_reference_body_name())
+
 
 func _ready() -> void:
 	ship = get_node_or_null(ship_path) as Node3D
@@ -99,7 +108,7 @@ func update_prograde_and_retrograde() -> void:
 	if prograde_marker == null or retrograde_marker == null:
 		return
 
-	var vel: Vector3 = SimulationState.ship_vel
+	var vel: Vector3 = SimulationState.ship_vel - _get_reference_body_vel()
 	var speed: float = vel.length()
 
 	if speed < min_speed_to_show:
@@ -124,7 +133,7 @@ func update_radial_markers() -> void:
 			radial_out_marker.visible = false
 		return
 
-	var to_planet_world: Vector3 = SimulationState.planet_pos - SimulationState.ship_pos
+	var to_planet_world: Vector3 = _get_reference_body_pos() - SimulationState.ship_pos
 
 	if to_planet_world.length() <= 0.0001:
 		radial_in_marker.visible = false
@@ -148,8 +157,8 @@ func update_normal_markers() -> void:
 			anti_normal_marker.visible = false
 		return
 
-	var r: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
-	var v: Vector3 = SimulationState.ship_vel
+	var r: Vector3 = SimulationState.ship_pos - _get_reference_body_pos()
+	var v: Vector3 = SimulationState.ship_vel - _get_reference_body_vel()
 
 	if r.length() <= 0.0001 or v.length() <= min_speed_to_show:
 		normal_marker.visible = false

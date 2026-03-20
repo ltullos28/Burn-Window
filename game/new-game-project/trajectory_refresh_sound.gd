@@ -30,3 +30,9 @@ func _process(delta: float) -> void:
 		active = false
 		if playing:
 			stop()
+
+func stop_refresh() -> void:
+	active = false
+	remaining_time = 0.0
+	if playing:
+		stop()

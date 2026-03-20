@@ -26,35 +26,52 @@ func _ready() -> void:
 	engine_audio = get_node_or_null(engine_audio_path)
 
 func _physics_process(delta: float) -> void:
-	if thrust_held:
-		var world_accel: Vector3 = global_transform.basis * Vector3(0.0, 0.0, main_thrust)
-		SimulationState.ship_vel += world_accel * delta
+	var sim_delta: float = SimulationState.get_current_sim_delta(delta)
+	if sim_delta <= 0.0:
+		position = Vector3.ZERO
+		return
 
-	if Input.is_action_pressed("ship_damp"):
+	var controls_locked: bool = SimulationState.is_targeted_warp_active()
+	var warp_path_active: bool = SimulationState.is_targeted_warp_path_active()
+	if controls_locked:
+		if thrust_held:
+			set_thrust_held(false)
+		pitch_control = 0.0
+		yaw_control = 0.0
+		roll_control = 0.0
+
+	if thrust_held and not controls_locked:
+		var world_accel: Vector3 = global_transform.basis * Vector3(0.0, 0.0, main_thrust)
+		SimulationState.ship_vel += world_accel * sim_delta
+		SimulationState.mark_trajectory_prediction_stale()
+
+	if not controls_locked and Input.is_action_pressed("ship_damp"):
 		SimulationState.ship_vel = SimulationState.ship_vel.move_toward(
 			Vector3.ZERO,
-			damping * 10.0 * delta
+			damping * 10.0 * sim_delta
 		)
 
-	if Input.is_action_just_pressed("ship_kill_velocity"):
+	if not controls_locked and Input.is_action_just_pressed("ship_kill_velocity"):
 		SimulationState.ship_vel = Vector3.ZERO
 
-	SimulationState.ship_vel += SimulationState.gravity_accel_at(SimulationState.ship_pos) * delta
+	if not warp_path_active:
+		SimulationState.ship_vel += SimulationState.gravity_accel_at(SimulationState.ship_pos) * sim_delta
 
-	if SimulationState.ship_vel.length() > max_speed:
+	if not warp_path_active and SimulationState.ship_vel.length() > max_speed:
 		SimulationState.ship_vel = SimulationState.ship_vel.normalized() * max_speed
 
-	SimulationState.ship_pos += SimulationState.ship_vel * delta
+	if not warp_path_active:
+		SimulationState.ship_pos += SimulationState.ship_vel * sim_delta
 
-	angular_velocity.x += pitch_control * max_rot_accel * delta
-	angular_velocity.y += yaw_control * max_rot_accel * delta
-	angular_velocity.z += roll_control * max_rot_accel * delta
+	angular_velocity.x += pitch_control * max_rot_accel * sim_delta
+	angular_velocity.y += yaw_control * max_rot_accel * sim_delta
+	angular_velocity.z += roll_control * max_rot_accel * sim_delta
 
-	angular_velocity = angular_velocity.move_toward(Vector3.ZERO, angular_drag * delta)
+	angular_velocity = angular_velocity.move_toward(Vector3.ZERO, angular_drag * sim_delta)
 
-	rotate_object_local(Vector3.RIGHT, angular_velocity.x * delta)
-	rotate_object_local(Vector3.UP, angular_velocity.y * delta)
-	rotate_object_local(Vector3.BACK, angular_velocity.z * delta)
+	rotate_object_local(Vector3.RIGHT, angular_velocity.x * sim_delta)
+	rotate_object_local(Vector3.UP, angular_velocity.y * sim_delta)
+	rotate_object_local(Vector3.BACK, angular_velocity.z * sim_delta)
 
 	position = Vector3.ZERO
 

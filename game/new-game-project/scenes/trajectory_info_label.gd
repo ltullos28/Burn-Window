@@ -27,9 +27,10 @@ func _process(_delta: float) -> void:
 	var ca_planet: float = _call_or_default("get_closest_approach_distance", -1.0)
 	var tca_planet: float = _call_or_default("get_closest_approach_time", -1.0)
 
-	var ca_moon: float = _call_or_default("get_moon_closest_approach_distance", -1.0)
-	var tca_moon: float = _call_or_default("get_moon_closest_approach_time", -1.0)
-	var vrel_moon: float = _call_or_default("get_moon_relative_speed_at_closest_approach", -1.0)
+	var focused_child_label: String = _call_or_default("get_focused_child_label_text", "MOON")
+	var ca_child: float = _call_or_default("get_focused_child_closest_approach_distance", _call_or_default("get_moon_closest_approach_distance", -1.0))
+	var tca_child: float = _call_or_default("get_focused_child_closest_approach_time", _call_or_default("get_moon_closest_approach_time", -1.0))
+	var vrel_child: float = _call_or_default("get_focused_child_relative_speed_at_closest_approach", _call_or_default("get_moon_relative_speed_at_closest_approach", -1.0))
 
 	var alt: float = _call_or_default("get_ship_altitude", -1.0)
 	var vel: float = _call_or_default("get_ship_speed", -1.0)
@@ -51,9 +52,10 @@ func _process(_delta: float) -> void:
 		period,
 		ca_planet,
 		tca_planet,
-		ca_moon,
-		tca_moon,
-		vrel_moon,
+		focused_child_label,
+		ca_child,
+		tca_child,
+		vrel_child,
 		alt,
 		vel,
 		vrad,
@@ -117,9 +119,10 @@ func _build_readout(
 	period: float,
 	ca_planet: float,
 	tca_planet: float,
-	ca_moon: float,
-	tca_moon: float,
-	vrel_moon: float,
+	focused_child_label: String,
+	ca_child: float,
+	tca_child: float,
+	vrel_child: float,
 	alt: float,
 	vel: float,
 	vrad: float,
@@ -152,11 +155,11 @@ func _build_readout(
 	lines.append("TCA      " + _fmt_time(tca_planet))
 	lines.append("")
 
-	lines.append("MOON ENCOUNTER")
+	lines.append(focused_child_label + " ENCOUNTER")
 	lines.append("--------------")
-	lines.append("CA       " + _fmt_nu(ca_moon))
-	lines.append("TCA      " + _fmt_time(tca_moon))
-	lines.append("VREL     " + _fmt_speed(vrel_moon))
+	lines.append("CA       " + _fmt_nu(ca_child))
+	lines.append("TCA      " + _fmt_time(tca_child))
+	lines.append("VREL     " + _fmt_speed(vrel_child))
 	lines.append("")
 
 	lines.append("SHIP STATE")
