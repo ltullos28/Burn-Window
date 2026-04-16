@@ -16,6 +16,7 @@ func _process(_delta: float) -> void:
 	var display_mode: String = _call_or_default("get_display_mode_text", "TRAJECTORY")
 	var reference_body: String = _call_or_default("get_reference_body_text", "PLANET")
 	var center_mode: String = _call_or_default("get_center_mode_text", "PLANET")
+	var primary_body_label: String = _call_or_default("get_primary_body_label_text", "PLANET")
 	var classification: String = _call_or_default("get_classification", "UNRESOLVED")
 
 	var pe: float = _call_or_default("get_periapsis", -1.0)
@@ -52,6 +53,7 @@ func _process(_delta: float) -> void:
 		period,
 		ca_planet,
 		tca_planet,
+		primary_body_label,
 		focused_child_label,
 		ca_child,
 		tca_child,
@@ -119,6 +121,7 @@ func _build_readout(
 	period: float,
 	ca_planet: float,
 	tca_planet: float,
+	primary_body_label: String,
 	focused_child_label: String,
 	ca_child: float,
 	tca_child: float,
@@ -149,7 +152,7 @@ func _build_readout(
 	lines.append("PERIOD   " + _fmt_time(period))
 	lines.append("")
 
-	lines.append("PLANET ENCOUNTER")
+	lines.append(primary_body_label + " ENCOUNTER")
 	lines.append("----------------")
 	lines.append("CA       " + _fmt_nu(ca_planet))
 	lines.append("TCA      " + _fmt_time(tca_planet))

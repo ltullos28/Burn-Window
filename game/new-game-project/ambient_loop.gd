@@ -29,3 +29,10 @@ func _process(delta: float) -> void:
 		if volume_db >= target_volume_db:
 			volume_db = target_volume_db
 			fading_in = false
+
+
+func set_target_volume_db(value: float, immediate: bool = false) -> void:
+	target_volume_db = value
+	if immediate:
+		volume_db = target_volume_db
+		fading_in = false

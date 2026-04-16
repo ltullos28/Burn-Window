@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://moon_body_visual.gd" id="1_moon_body_visual"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_surface"]
+albedo_color = Color(0.86, 0.88, 0.93, 1)
+roughness = 0.95
+metallic = 0.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_body"]
+
+[node name="MoonBodyVisual" type="Node3D"]
+script = ExtResource("1_moon_body_visual")
+mesh_root_path = NodePath("MeshInstance3D")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+layers = 2
+material_override = SubResource("StandardMaterial3D_surface")
+mesh = SubResource("SphereMesh_body")

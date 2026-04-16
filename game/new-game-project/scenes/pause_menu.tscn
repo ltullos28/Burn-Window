@@ -1,0 +1,485 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/pause_menu_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scenes/menu_focus_button.gd" id="2_focus_button"]
+[ext_resource type="AudioStream" path="res://scenes/skyscraper_seven-click-buttons-ui-menu-sounds-effects-button-7-203601.mp3" id="3_click"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+visible = false
+script = ExtResource("1_controller")
+
+[node name="PauseButtonPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_click")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.76)
+
+[node name="UIRoot" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MenuShell" type="PanelContainer" parent="UIRoot"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -410.0
+offset_top = -320.0
+offset_right = 410.0
+offset_bottom = 320.0
+
+[node name="MenuMargin" type="MarginContainer" parent="UIRoot/MenuShell"]
+layout_mode = 2
+theme_override_constants/margin_left = 26
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 26
+theme_override_constants/margin_bottom = 24
+
+[node name="MenuVBox" type="VBoxContainer" parent="UIRoot/MenuShell/MenuMargin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9529412, 0.9490196, 0.9372549, 1)
+theme_override_font_sizes/font_size = 42
+text = "Paused"
+
+[node name="MenuColumns" type="HBoxContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 24
+
+[node name="ButtonColumn" type="VBoxContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="ResumeButton" type="Button" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn"]
+custom_minimum_size = Vector2(220, 54)
+layout_mode = 2
+text = "Resume"
+script = ExtResource("2_focus_button")
+
+[node name="SettingsButton" type="Button" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn"]
+custom_minimum_size = Vector2(220, 54)
+layout_mode = 2
+text = "Settings"
+script = ExtResource("2_focus_button")
+
+[node name="ReturnToMenuButton" type="Button" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn"]
+custom_minimum_size = Vector2(220, 54)
+layout_mode = 2
+text = "Return To Menu"
+script = ExtResource("2_focus_button")
+
+[node name="QuitButton" type="Button" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn"]
+custom_minimum_size = Vector2(220, 54)
+layout_mode = 2
+text = "Quit"
+script = ExtResource("2_focus_button")
+
+[node name="Divider" type="ColorRect" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns"]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(0.32156864, 0.45490196, 0.54509807, 0.75)
+
+[node name="DetailsColumn" type="VBoxContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="DetailsTitleLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 28
+text = "Resume"
+
+[node name="DetailsBodyLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn"]
+custom_minimum_size = Vector2(0, 360)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85490197, 0.8784314, 0.9019608, 1)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+text = "Simulation paused."
+
+[node name="SettingsPanel" type="VBoxContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="SettingsIntroLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 17
+text = "Adjust your settings."
+autowrap_mode = 3
+
+[node name="SettingsScroll" type="ScrollContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+follow_focus = true
+
+[node name="SettingsScrollContent" type="VBoxContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="VideoHeader" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Video"
+
+[node name="VideoGrid" type="GridContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="FullscreenLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Fullscreen"
+
+[node name="FullscreenToggle" type="CheckButton" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+
+[node name="FullscreenValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+horizontal_alignment = 0
+
+[node name="ResolutionLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Resolution"
+
+[node name="ResolutionOptionButton" type="OptionButton" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
+[node name="ResolutionValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "1920 x 1080"
+horizontal_alignment = 0
+
+[node name="CameraFovLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Camera FOV"
+
+[node name="CameraFovSlider" type="HSlider" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+min_value = 55.0
+max_value = 95.0
+value = 75.0
+
+[node name="CameraFovValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "75"
+horizontal_alignment = 0
+
+[node name="PlanetEffectsLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Planet Effects"
+
+[node name="PlanetEffectsToggle" type="CheckButton" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+
+[node name="PlanetEffectsValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+horizontal_alignment = 0
+
+[node name="ControlsHeader" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Controls"
+
+[node name="ControlsGrid" type="GridContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="MouseSensitivityLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Mouse Sensitivity"
+
+[node name="MouseSensitivitySlider" type="HSlider" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 1.0
+value = 50.0
+
+[node name="MouseSensitivityValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "50"
+horizontal_alignment = 0
+
+[node name="InvertYLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Invert Y Look"
+
+[node name="InvertYToggle" type="CheckButton" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+
+[node name="InvertYValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "Off"
+horizontal_alignment = 0
+
+[node name="MouseSmoothingLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Mouse Smoothing"
+
+[node name="MouseSmoothingToggle" type="CheckButton" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+button_pressed = true
+
+[node name="MouseSmoothingValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+horizontal_alignment = 0
+
+[node name="MouseSmoothingDetailMargin" type="MarginContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+
+[node name="MouseSmoothingDetailGrid" type="GridContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="MouseSmoothingAmountLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin/MouseSmoothingDetailGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Smoothing Level"
+
+[node name="MouseSmoothingSlider" type="HSlider" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin/MouseSmoothingDetailGrid"]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+min_value = 1.0
+max_value = 100.0
+step = 1.0
+value = 50.0
+
+[node name="MouseSmoothingValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin/MouseSmoothingDetailGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "50"
+horizontal_alignment = 0
+
+[node name="GameplayHeader" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Gameplay"
+
+[node name="GameplayGrid" type="GridContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="CameraShakeLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Camera Shake"
+
+[node name="CameraShakeToggle" type="CheckButton" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid"]
+layout_mode = 2
+
+[node name="CameraShakeValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+horizontal_alignment = 0
+
+[node name="AudioHeader" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Audio"
+
+[node name="AudioGrid" type="GridContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="EngineVolumeLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Engine Volume"
+
+[node name="EngineVolumeSlider" type="HSlider" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+max_value = 1.5
+step = 0.01
+value = 1.0
+
+[node name="EngineVolumeValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "100%"
+horizontal_alignment = 0
+
+[node name="AmbientVolumeLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Ambient Volume"
+
+[node name="AmbientVolumeSlider" type="HSlider" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+max_value = 1.5
+step = 0.01
+value = 1.0
+
+[node name="AmbientVolumeValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "100%"
+horizontal_alignment = 0
+
+[node name="UiVolumeLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "UI Volume"
+
+[node name="UiVolumeSlider" type="HSlider" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+max_value = 1.5
+step = 0.01
+value = 1.0
+
+[node name="UiVolumeValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "100%"
+horizontal_alignment = 0
+
+[node name="SettingsButtonRow" type="HBoxContainer" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 2
+
+[node name="ResetSettingsButton" type="Button" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsButtonRow"]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Reset"
+script = ExtResource("2_focus_button")
+
+[node name="ApplySettingsButton" type="Button" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsButtonRow"]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+disabled = true
+text = "Apply"
+script = ExtResource("2_focus_button")
+
+[node name="SettingsPromptOverlay" type="ColorRect" parent="UIRoot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.76)
+
+[node name="SettingsPromptPanel" type="PanelContainer" parent="UIRoot/SettingsPromptOverlay"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -110.0
+offset_right = 240.0
+offset_bottom = 110.0
+
+[node name="SettingsPromptMargin" type="MarginContainer" parent="UIRoot/SettingsPromptOverlay/SettingsPromptPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 22
+
+[node name="SettingsPromptVBox" type="VBoxContainer" parent="UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SettingsPromptTitle" type="Label" parent="UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 22
+text = "Unapplied Settings"
+
+[node name="SettingsPromptBody" type="Label" parent="UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 17
+text = "You have unapplied changes. Choose Apply to keep them or Discard to leave Settings without them."
+autowrap_mode = 3
+
+[node name="SettingsPromptButtonRow" type="HBoxContainer" parent="UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 2
+
+[node name="SettingsPromptDiscardButton" type="Button" parent="UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox/SettingsPromptButtonRow"]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Discard"
+script = ExtResource("2_focus_button")
+
+[node name="SettingsPromptApplyButton" type="Button" parent="UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox/SettingsPromptButtonRow"]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Apply"
+script = ExtResource("2_focus_button")

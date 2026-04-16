@@ -7,6 +7,8 @@ const TimewarpSelectorModel := preload("res://trajectoryMath/timewarp_selector.g
 const TrajectoryProjectionCacheModel := preload("res://trajectoryMath/trajectory_projection_cache.gd")
 const PRIMARY_BODY_NAME := &"planet"
 const MOON_BODY_NAME := &"moon"
+const MAX_DISPLAY_SHIP_POINTS := 1600
+const REVEAL_FRONTIER_DENSE_STEPS := 140
 
 enum CenterMode {
 	PLANET,
@@ -93,6 +95,9 @@ var impact_sound_player: Node = null
 
 var geometry_cache_dirty: bool = true
 var cached_ship_source_points: Array[Vector3] = []
+var cached_ship_display_points: Array[Vector3] = []
+var cached_ship_display_source_indices: Array[int] = []
+var cached_ship_display_runs: Array[Dictionary] = []
 var cached_ship_runs: Array[Dictionary] = []
 var cached_main_visible_count: int = 0
 var cached_ship_impact_found: bool = false
@@ -396,7 +401,129 @@ func _advance_focused_child_selection(direction: int = 1) -> bool:
 func _get_body_display_text(body_name: StringName) -> String:
 	if body_name == &"":
 		return "CHILD"
+	var session: Node = get_node_or_null("/root/GameSession")
+	if session != null and session.has_method("get_body_display_name"):
+		return String(session.get_body_display_name(body_name)).to_upper()
 	return String(body_name).replace("_", " ").to_upper()
+
+func _sample_child_orbit_track_data(projection_center: Vector2, child_body_name: StringName) -> Dictionary:
+	var orbit: Dictionary = SimulationState.get_body_orbit_params(child_body_name)
+	var angular_speed: float = absf(float(orbit.get("angular_speed", 0.0)))
+	if orbit.is_empty() or angular_speed <= 0.000001:
+		var child_rel_planet: Vector3 = SimulationState.get_body_position(child_body_name) - SimulationState.get_body_position(PRIMARY_BODY_NAME)
+		var child_orbit_radius: float = child_rel_planet.length()
+		if child_orbit_radius > 0.0001:
+			var projected_points := PackedVector2Array()
+			var relative_points: Array[Vector3] = []
+			var sample_count_fallback: int = 128
+			for sample_index in range(sample_count_fallback + 1):
+				var angle: float = TAU * (float(sample_index) / float(sample_count_fallback))
+				var point := Vector3(cos(angle) * child_orbit_radius, 0.0, sin(angle) * child_orbit_radius)
+				relative_points.append(point)
+				projected_points.append(_to_screen(point, projection_center))
+			return {
+				"projected_points": projected_points,
+				"relative_points": relative_points,
+				"periapsis_index": -1,
+				"apoapsis_index": -1,
+			}
+		return {
+			"projected_points": PackedVector2Array(),
+			"relative_points": [],
+			"periapsis_index": -1,
+			"apoapsis_index": -1,
+		}
+
+	var orbit_period: float = TAU / angular_speed
+	var parent_body_name: StringName = SimulationState.get_body_parent(child_body_name)
+	var orbit_points := PackedVector2Array()
+	var relative_points: Array[Vector3] = []
+	var sample_count: int = 160
+	for sample_index in range(sample_count + 1):
+		var t: float = SimulationState.sim_time + orbit_period * (float(sample_index) / float(sample_count))
+		var child_state: Dictionary = SimulationState.get_body_state_at_time(child_body_name, t)
+		var parent_state: Dictionary = SimulationState.get_body_state_at_time(parent_body_name, t)
+		var child_position: Vector3 = child_state.get("pos", Vector3.ZERO)
+		var parent_position: Vector3 = parent_state.get("pos", Vector3.ZERO)
+		var child_relative_position: Vector3 = child_position - parent_position
+		relative_points.append(child_relative_position)
+		orbit_points.append(_to_screen(child_relative_position, projection_center))
+
+	var periapsis_index: int = -1
+	var apoapsis_index: int = -1
+	var min_radius: float = INF
+	var max_radius: float = -INF
+	var mean_radius: float = 0.0
+	for index in range(relative_points.size()):
+		var radius: float = relative_points[index].length()
+		mean_radius += radius
+		if radius < min_radius:
+			min_radius = radius
+			periapsis_index = index
+		if radius > max_radius:
+			max_radius = radius
+			apoapsis_index = index
+	if not relative_points.is_empty():
+		mean_radius /= float(relative_points.size())
+	if mean_radius > 0.0001 and (max_radius - min_radius) / mean_radius < 0.01:
+		periapsis_index = -1
+		apoapsis_index = -1
+
+	return {
+		"projected_points": orbit_points,
+		"relative_points": relative_points,
+		"periapsis_index": periapsis_index,
+		"apoapsis_index": apoapsis_index,
+	}
+
+func _draw_child_orbit_track(projection_center: Vector2, child_body_name: StringName, orbit_color: Color) -> void:
+	var track_data: Dictionary = _sample_child_orbit_track_data(projection_center, child_body_name)
+	var orbit_points: PackedVector2Array = track_data.get("projected_points", PackedVector2Array())
+	if orbit_points.size() > 1:
+		draw_polyline(orbit_points, orbit_color, 1.0)
+
+func _draw_selected_child_plan_markers(
+	projection_center: Vector2,
+	child_body_name: StringName,
+	planet_screen: Vector2,
+	planet_radius_px: float
+) -> void:
+	var track_data: Dictionary = _sample_child_orbit_track_data(projection_center, child_body_name)
+	var orbit_points: PackedVector2Array = track_data.get("projected_points", PackedVector2Array())
+	var relative_points: Array[Vector3] = track_data.get("relative_points", [])
+	if orbit_points.size() <= 1 or relative_points.is_empty():
+		return
+
+	var periapsis_index: int = int(track_data.get("periapsis_index", -1))
+	var apoapsis_index: int = int(track_data.get("apoapsis_index", -1))
+
+	if periapsis_index >= 0 and periapsis_index < orbit_points.size() and periapsis_index < relative_points.size():
+		var pe_screen: Vector2 = orbit_points[periapsis_index]
+		var pe_point: Vector3 = relative_points[periapsis_index]
+		var pe_hidden: bool = Vector2(pe_point.x, pe_point.z).length() < SimulationState.planet_radius and pe_point.y < 0.0
+		if pe_hidden:
+			var pe_dir: Vector2 = pe_screen - planet_screen
+			if pe_dir.length_squared() <= 0.0001:
+				pe_dir = Vector2.RIGHT
+			else:
+				pe_dir = pe_dir.normalized()
+			pe_screen = planet_screen + pe_dir * (planet_radius_px + 8.0)
+		_draw_marker_square(pe_screen, 6.0, Color(0.892, 1.0, 0.35))
+		_draw_marker_label(pe_screen, "PE", Color(0.892, 1.0, 0.35), planet_screen)
+
+	if apoapsis_index >= 0 and apoapsis_index < orbit_points.size() and apoapsis_index < relative_points.size():
+		var ap_screen: Vector2 = orbit_points[apoapsis_index]
+		var ap_point: Vector3 = relative_points[apoapsis_index]
+		var ap_hidden: bool = Vector2(ap_point.x, ap_point.z).length() < SimulationState.planet_radius and ap_point.y < 0.0
+		if ap_hidden:
+			var ap_dir: Vector2 = ap_screen - planet_screen
+			if ap_dir.length_squared() <= 0.0001:
+				ap_dir = Vector2.LEFT
+			else:
+				ap_dir = ap_dir.normalized()
+			ap_screen = planet_screen + ap_dir * (planet_radius_px + 8.0)
+		_draw_marker_square(ap_screen, 6.0, Color(0.35, 0.75, 1.0))
+		_draw_marker_label(ap_screen, "AP", Color(0.35, 0.75, 1.0), planet_screen)
 
 func _get_child_ghost_color(index: int, count: int, is_selected: bool) -> Color:
 	var use_count: int = max(count, 1)
@@ -689,12 +816,15 @@ func _begin_center_transition(new_mode: CenterMode) -> void:
 func get_center_mode_text() -> String:
 	match center_mode:
 		CenterMode.PLANET:
-			return "PLANET"
+			return _get_body_display_text(PRIMARY_BODY_NAME)
 		CenterMode.MOON:
 			return _get_body_display_text(_get_selected_focused_child_body_name())
 		CenterMode.SHIP:
 			return "SHIP"
 	return "UNKNOWN"
+
+func get_primary_body_label_text() -> String:
+	return _get_body_display_text(PRIMARY_BODY_NAME)
 
 func get_display_mode_text() -> String:
 	match display_mode:
@@ -718,7 +848,7 @@ func get_reference_body_text() -> String:
 	if display_mode == DisplayMode.INCLINATION:
 		var body_name: StringName = body_focus_projection.get_inclination_reference_body_name(center_mode, _get_selected_focused_child_body_name())
 		return _get_body_display_text(body_name)
-	return "PLANET"
+	return _get_body_display_text(PRIMARY_BODY_NAME)
 
 func get_closest_approach_distance() -> float:
 	return solution.closest_approach_distance
@@ -1366,10 +1496,20 @@ func _ensure_projected_render_cache(
 
 	var projected_points_built: int = 0
 
-	if main_visible_count > 1:
-		cached_projected_ship_points = _project_points_range(cached_ship_source_points, 0, main_visible_count - 1, center)
+	var ship_render_path: Dictionary = _build_ship_render_path_for_visible_count(main_visible_count)
+	var ship_render_points: Array[Vector3] = ship_render_path.get("points", [])
+	var ship_render_runs: Array[Dictionary] = ship_render_path.get("runs", [])
+	if ship_render_points.size() > 1:
+		cached_projected_ship_points = _project_points_range(ship_render_points, 0, ship_render_points.size() - 1, center)
 		projected_points_built += cached_projected_ship_points.size()
-		cached_projected_ship_run_draws = _build_projected_run_cache(cached_ship_source_points, cached_ship_runs, center, main_visible_count)
+		cached_projected_ship_run_draws = _build_projected_run_cache(
+			ship_render_points,
+			ship_render_runs,
+			center,
+			ship_render_points.size(),
+			Vector3.ZERO,
+			false
+		)
 		for run in cached_projected_ship_run_draws:
 			var projected: PackedVector2Array = run.get("points", PackedVector2Array())
 			projected_points_built += projected.size()
@@ -1418,6 +1558,9 @@ func _rebuild_geometry_cache_if_needed() -> void:
 	geometry_cache_dirty = false
 	_invalidate_projected_render_cache()
 	cached_ship_source_points.clear()
+	cached_ship_display_points.clear()
+	cached_ship_display_source_indices.clear()
+	cached_ship_display_runs.clear()
 	cached_ship_runs.clear()
 	cached_main_visible_count = 0
 	cached_ship_impact_found = false
@@ -1485,6 +1628,7 @@ func _rebuild_geometry_cache_if_needed() -> void:
 	cached_focused_child_entry_index = cache.get("focused_child_entry_index", -1)
 	cached_focused_child_exit_index = cache.get("focused_child_exit_index", -1)
 	cached_currently_in_focused_child_dominance = cache.get("currently_in_focused_child_dominance", cached_currently_in_focused_child_dominance)
+	_rebuild_ship_display_cache()
 
 	var has_impact_marker: bool = cached_ship_impact_found or cached_focused_child_local_impact_found
 	if not impact_sound_played:
@@ -1586,6 +1730,362 @@ func _build_hidden_runs(points: Array[Vector3]) -> Array[Dictionary]:
 
 	return runs
 
+func _add_ship_display_anchor_index(anchor_flags: Dictionary, source_index: int, point_count: int) -> void:
+	if source_index < 0 or source_index >= point_count:
+		return
+	anchor_flags[source_index] = true
+
+func _add_ship_display_anchor_window(anchor_flags: Dictionary, center_index: int, radius: int, point_count: int) -> void:
+	if center_index < 0 or center_index >= point_count:
+		return
+	var start_index: int = max(0, center_index - max(radius, 0))
+	var end_index: int = min(point_count - 1, center_index + max(radius, 0))
+	for i in range(start_index, end_index + 1):
+		anchor_flags[i] = true
+
+func _collect_ship_display_anchor_indices(point_count: int) -> Dictionary:
+	var anchor_flags: Dictionary = {}
+	if point_count <= 0:
+		return anchor_flags
+
+	_add_ship_display_anchor_index(anchor_flags, 0, point_count)
+	_add_ship_display_anchor_index(anchor_flags, point_count - 1, point_count)
+	_add_ship_display_anchor_index(anchor_flags, solution.predicted_periapsis_index, point_count)
+	_add_ship_display_anchor_index(anchor_flags, solution.predicted_apoapsis_index, point_count)
+	_add_ship_display_anchor_index(anchor_flags, cached_ship_impact_index, point_count)
+	_add_ship_display_anchor_index(anchor_flags, cached_focused_child_entry_index, point_count)
+	_add_ship_display_anchor_index(anchor_flags, cached_focused_child_exit_index, point_count)
+	_add_ship_display_anchor_window(anchor_flags, solution.predicted_periapsis_index, 12, point_count)
+	_add_ship_display_anchor_window(anchor_flags, solution.predicted_apoapsis_index, 12, point_count)
+	_add_ship_display_anchor_window(anchor_flags, cached_ship_impact_index, 8, point_count)
+	_add_ship_display_anchor_window(anchor_flags, cached_focused_child_entry_index, 8, point_count)
+	_add_ship_display_anchor_window(anchor_flags, cached_focused_child_exit_index, 8, point_count)
+
+	for body_key in solution.body_closest_approaches.keys():
+		var body_ca: Dictionary = solution.body_closest_approaches.get(body_key, {})
+		var body_ca_index: int = int(body_ca.get("index", -1))
+		_add_ship_display_anchor_index(anchor_flags, body_ca_index, point_count)
+		_add_ship_display_anchor_window(anchor_flags, body_ca_index, 6, point_count)
+
+	for run in cached_ship_runs:
+		_add_ship_display_anchor_index(anchor_flags, int(run.get("start", -1)), point_count)
+		_add_ship_display_anchor_index(anchor_flags, int(run.get("end", -1)), point_count)
+
+	if timewarp_selector.selection_index > 0:
+		var point_limit: int = _get_timewarp_point_limit()
+		if point_limit > 0:
+			var target_index: int = timewarp_selector.get_target_index(point_limit)
+			_add_ship_display_anchor_window(anchor_flags, target_index, 8, point_count)
+
+	return anchor_flags
+
+func _point_to_segment_distance_2d(point: Vector2, segment_start: Vector2, segment_end: Vector2) -> float:
+	var segment_delta: Vector2 = segment_end - segment_start
+	var segment_length_squared: float = segment_delta.length_squared()
+	if segment_length_squared <= 0.00000001:
+		return point.distance_to(segment_start)
+
+	var t: float = clampf((point - segment_start).dot(segment_delta) / segment_length_squared, 0.0, 1.0)
+	var closest_point: Vector2 = segment_start + segment_delta * t
+	return point.distance_to(closest_point)
+
+func _build_ship_display_segment_error(
+	start_index: int,
+	end_index: int,
+	screen_points: Array[Vector2],
+	importance_weights: Array[float]
+) -> Dictionary:
+	if end_index - start_index <= 1:
+		return {"valid": false}
+
+	var segment_start: Vector2 = screen_points[start_index]
+	var segment_end: Vector2 = screen_points[end_index]
+	var best_split_index: int = -1
+	var best_weighted_error: float = 0.0
+
+	for i in range(start_index + 1, end_index):
+		var raw_error: float = _point_to_segment_distance_2d(screen_points[i], segment_start, segment_end)
+		var weighted_error: float = raw_error * importance_weights[i]
+		if weighted_error > best_weighted_error:
+			best_weighted_error = weighted_error
+			best_split_index = i
+
+	return {
+		"valid": best_split_index >= 0,
+		"start": start_index,
+		"end": end_index,
+		"split_index": best_split_index,
+		"weighted_error": best_weighted_error,
+	}
+
+func _build_ship_display_source_indices_adaptive(point_count: int, anchor_flags: Dictionary) -> Array[int]:
+	var selected_flags: Dictionary = {}
+	for source_index_raw in anchor_flags.keys():
+		var source_index: int = int(source_index_raw)
+		if source_index >= 0 and source_index < point_count:
+			selected_flags[source_index] = true
+	selected_flags[0] = true
+	selected_flags[point_count - 1] = true
+
+	var mandatory_indices: Array[int] = []
+	for source_index_raw in selected_flags.keys():
+		mandatory_indices.append(int(source_index_raw))
+	mandatory_indices.sort()
+
+	if mandatory_indices.size() <= 1:
+		return [0]
+
+	var target_max_points: int = max(MAX_DISPLAY_SHIP_POINTS, mandatory_indices.size())
+	var screen_points: Array[Vector2] = []
+	var importance_weights: Array[float] = []
+	screen_points.resize(point_count)
+	importance_weights.resize(point_count)
+	var planet_radius: float = max(SimulationState.planet_radius, 0.001)
+
+	for i in range(point_count):
+		screen_points[i] = _project_planet_frame(cached_ship_source_points[i]) * pixels_per_unit
+
+		var radial_distance: float = cached_ship_source_points[i].length()
+		var radial_ratio: float = radial_distance / planet_radius
+		var importance_weight: float = 1.0
+		if i < 220:
+			importance_weight += 0.9
+		elif i < 640:
+			importance_weight += 0.35
+		if radial_ratio <= 2.5:
+			importance_weight += 1.0
+		elif radial_ratio <= 5.0:
+			importance_weight += 0.55
+		importance_weights[i] = importance_weight
+
+	var segments: Array[Dictionary] = []
+	for i in range(mandatory_indices.size() - 1):
+		var segment: Dictionary = _build_ship_display_segment_error(
+			mandatory_indices[i],
+			mandatory_indices[i + 1],
+			screen_points,
+			importance_weights
+		)
+		if segment.get("valid", false):
+			segments.append(segment)
+
+	var error_threshold_px: float = 1.35
+	var selected_count: int = mandatory_indices.size()
+	while selected_count < target_max_points and not segments.is_empty():
+		var best_segment_position: int = -1
+		var best_segment_error: float = error_threshold_px
+		for i in range(segments.size()):
+			var weighted_error: float = float(segments[i].get("weighted_error", 0.0))
+			if weighted_error > best_segment_error:
+				best_segment_error = weighted_error
+				best_segment_position = i
+
+		if best_segment_position < 0:
+			break
+
+		var best_segment: Dictionary = segments[best_segment_position]
+		segments.remove_at(best_segment_position)
+		var split_index: int = int(best_segment.get("split_index", -1))
+		var segment_start_index: int = int(best_segment.get("start", -1))
+		var segment_end_index: int = int(best_segment.get("end", -1))
+		if split_index <= segment_start_index or split_index >= segment_end_index:
+			continue
+		if selected_flags.has(split_index):
+			continue
+
+		selected_flags[split_index] = true
+		selected_count += 1
+
+		var left_segment: Dictionary = _build_ship_display_segment_error(
+			segment_start_index,
+			split_index,
+			screen_points,
+			importance_weights
+		)
+		if left_segment.get("valid", false):
+			segments.append(left_segment)
+
+		var right_segment: Dictionary = _build_ship_display_segment_error(
+			split_index,
+			segment_end_index,
+			screen_points,
+			importance_weights
+		)
+		if right_segment.get("valid", false):
+			segments.append(right_segment)
+
+	var selected_indices: Array[int] = []
+	for source_index_raw in selected_flags.keys():
+		selected_indices.append(int(source_index_raw))
+	selected_indices.sort()
+	return selected_indices
+
+func _get_ship_run_properties_for_source_index(source_index: int, source_runs: Array[Dictionary]) -> Dictionary:
+	for run in source_runs:
+		var run_start: int = int(run.get("start", -1))
+		var run_end: int = int(run.get("end", -1))
+		if source_index >= run_start and source_index < run_end:
+			return {
+				"hidden": bool(run.get("hidden", false)),
+				"color": run.get("color", Color(0.6, 1.0, 0.7)),
+			}
+	return {
+		"hidden": false,
+		"color": Color(0.6, 1.0, 0.7),
+	}
+
+func _build_ship_display_runs_from_source_runs() -> void:
+	cached_ship_display_runs.clear()
+	if cached_ship_display_source_indices.size() < 2:
+		return
+	if cached_ship_runs.is_empty():
+		cached_ship_display_runs.append({
+			"start": 0,
+			"end": cached_ship_display_source_indices.size() - 1,
+			"hidden": false,
+			"color": Color(0.6, 1.0, 0.7),
+		})
+		return
+
+	var current_start: int = 0
+	var current_hidden: bool = false
+	var current_color: Color = Color(0.6, 1.0, 0.7)
+	var initialized: bool = false
+
+	for display_index in range(cached_ship_display_source_indices.size() - 1):
+		var source_index: int = cached_ship_display_source_indices[display_index]
+		var run_props: Dictionary = _get_ship_run_properties_for_source_index(source_index, cached_ship_runs)
+		var seg_hidden: bool = bool(run_props.get("hidden", false))
+		var seg_color: Color = run_props.get("color", Color(0.6, 1.0, 0.7))
+
+		if not initialized:
+			current_start = display_index
+			current_hidden = seg_hidden
+			current_color = seg_color
+			initialized = true
+			continue
+
+		if seg_hidden != current_hidden or seg_color != current_color:
+			cached_ship_display_runs.append({
+				"start": current_start,
+				"end": display_index,
+				"hidden": current_hidden,
+				"color": current_color,
+			})
+			current_start = display_index
+			current_hidden = seg_hidden
+			current_color = seg_color
+
+	if initialized:
+		cached_ship_display_runs.append({
+			"start": current_start,
+			"end": cached_ship_display_source_indices.size() - 1,
+			"hidden": current_hidden,
+			"color": current_color,
+		})
+
+func _rebuild_ship_display_cache() -> void:
+	cached_ship_display_points.clear()
+	cached_ship_display_source_indices.clear()
+	cached_ship_display_runs.clear()
+
+	var point_count: int = cached_ship_source_points.size()
+	if point_count <= 0:
+		return
+
+	var selected_source_indices: Array[int] = []
+	if point_count <= MAX_DISPLAY_SHIP_POINTS:
+		for source_index in range(point_count):
+			selected_source_indices.append(source_index)
+	else:
+		var anchor_flags: Dictionary = _collect_ship_display_anchor_indices(point_count)
+		var reveal_prefix_count: int = min(point_count, 128)
+		for source_index in range(reveal_prefix_count):
+			anchor_flags[source_index] = true
+		selected_source_indices = _build_ship_display_source_indices_adaptive(point_count, anchor_flags)
+
+	for source_index in selected_source_indices:
+		cached_ship_display_source_indices.append(source_index)
+		cached_ship_display_points.append(cached_ship_source_points[source_index])
+
+	_build_ship_display_runs_from_source_runs()
+
+func _build_ship_render_path_for_visible_count(main_visible_count: int) -> Dictionary:
+	var render_points: Array[Vector3] = []
+	var render_runs: Array[Dictionary] = []
+	if main_visible_count <= 1 or cached_ship_source_points.size() <= 1:
+		return {
+			"points": render_points,
+			"runs": render_runs,
+		}
+
+	var source_limit: int = min(main_visible_count, cached_ship_source_points.size())
+	var selected_flags: Dictionary = {}
+	for source_index in cached_ship_display_source_indices:
+		if source_index < source_limit:
+			selected_flags[source_index] = true
+		else:
+			break
+
+	var frontier_start_index: int = max(0, source_limit - REVEAL_FRONTIER_DENSE_STEPS)
+	for source_index in range(frontier_start_index, source_limit):
+		selected_flags[source_index] = true
+	selected_flags[0] = true
+	selected_flags[source_limit - 1] = true
+
+	var render_source_indices: Array[int] = []
+	for source_index_raw in selected_flags.keys():
+		var source_index: int = int(source_index_raw)
+		if source_index >= 0 and source_index < source_limit:
+			render_source_indices.append(source_index)
+	render_source_indices.sort()
+
+	for source_index in render_source_indices:
+		render_points.append(cached_ship_source_points[source_index])
+
+	if render_source_indices.size() >= 2:
+		var current_start: int = 0
+		var current_hidden: bool = false
+		var current_color: Color = Color(0.6, 1.0, 0.7)
+		var initialized: bool = false
+
+		for render_index in range(render_source_indices.size() - 1):
+			var source_index: int = render_source_indices[render_index]
+			var run_props: Dictionary = _get_ship_run_properties_for_source_index(source_index, cached_ship_runs)
+			var seg_hidden: bool = bool(run_props.get("hidden", false))
+			var seg_color: Color = run_props.get("color", Color(0.6, 1.0, 0.7))
+
+			if not initialized:
+				current_start = render_index
+				current_hidden = seg_hidden
+				current_color = seg_color
+				initialized = true
+				continue
+
+			if seg_hidden != current_hidden or seg_color != current_color:
+				render_runs.append({
+					"start": current_start,
+					"end": render_index,
+					"hidden": current_hidden,
+					"color": current_color,
+				})
+				current_start = render_index
+				current_hidden = seg_hidden
+				current_color = seg_color
+
+		if initialized:
+			render_runs.append({
+				"start": current_start,
+				"end": render_source_indices.size() - 1,
+				"hidden": current_hidden,
+				"color": current_color,
+			})
+
+	return {
+		"points": render_points,
+		"runs": render_runs,
+	}
+
 func _project_points_range(points: Array[Vector3], start_index: int, end_index: int, center: Vector2, anchor: Vector3 = Vector3.ZERO) -> PackedVector2Array:
 	var projected := PackedVector2Array()
 	if points.is_empty():
@@ -1669,7 +2169,14 @@ func _draw_projected_runs(points: Array[Vector3], runs: Array[Dictionary], cente
 		else:
 			draw_polyline(projected, run_color, line_width)
 
-func _build_projected_run_cache(points: Array[Vector3], runs: Array[Dictionary], center: Vector2, max_points: int, anchor: Vector3 = Vector3.ZERO) -> Array[Dictionary]:
+func _build_projected_run_cache(
+	points: Array[Vector3],
+	runs: Array[Dictionary],
+	center: Vector2,
+	max_points: int,
+	anchor: Vector3 = Vector3.ZERO,
+	decimate: bool = true
+) -> Array[Dictionary]:
 	var projected_runs: Array[Dictionary] = []
 	if points.size() < 2 or max_points < 2:
 		return projected_runs
@@ -1685,7 +2192,7 @@ func _build_projected_run_cache(points: Array[Vector3], runs: Array[Dictionary],
 		if run_end <= run_start:
 			continue
 
-		var projected: PackedVector2Array = _project_points_range_decimated(points, run_start, run_end, center, anchor)
+		var projected: PackedVector2Array = _project_points_range_decimated(points, run_start, run_end, center, anchor) if decimate else _project_points_range(points, run_start, run_end, center, anchor)
 		if projected.size() < 2:
 			continue
 
@@ -1716,6 +2223,18 @@ func _get_reference_body_vel() -> Vector3:
 
 func _get_reference_body_up() -> Vector3:
 	return _get_reference_body_state().get("up", Vector3.UP)
+
+func _get_reference_frame_origin_pos() -> Vector3:
+	return _get_reference_body_state().get("frame_origin_pos", _get_reference_body_pos())
+
+func _get_reference_frame_origin_vel() -> Vector3:
+	return _get_reference_body_state().get("frame_origin_vel", _get_reference_body_vel())
+
+func _get_reference_plane_normal() -> Vector3:
+	var plane_normal: Vector3 = _get_reference_body_state().get("plane_normal", _get_reference_body_up())
+	if plane_normal.length_squared() > 0.0001:
+		return plane_normal.normalized()
+	return Vector3.UP
 
 func _get_reference_body_radius() -> float:
 	return _get_reference_body_state().get("radius", 0.0)
@@ -1771,12 +2290,12 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	var center_label_color: Color = Color.BLACK
 	var outer_circle_color: Color = Color(0.75, 1.0, 0.2)
 
-	var body_pos: Vector3 = _get_reference_body_pos()
-	var body_vel: Vector3 = _get_reference_body_vel()
-	var body_up: Vector3 = _get_reference_body_up()
+	var frame_origin_pos: Vector3 = _get_reference_frame_origin_pos()
+	var frame_origin_vel: Vector3 = _get_reference_frame_origin_vel()
+	var reference_plane_normal: Vector3 = _get_reference_plane_normal()
 
-	var r: Vector3 = SimulationState.ship_pos - body_pos
-	var v: Vector3 = SimulationState.ship_vel - body_vel
+	var r: Vector3 = SimulationState.ship_pos - frame_origin_pos
+	var v: Vector3 = SimulationState.ship_vel - frame_origin_vel
 	var h: Vector3 = v.cross(r)
 
 	var font := ThemeDB.fallback_font
@@ -1839,7 +2358,7 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 		return
 
 	var hhat: Vector3 = h.normalized()
-	var dot_val: float = clampf(hhat.dot(body_up), -1.0, 1.0)
+	var dot_val: float = clampf(hhat.dot(reference_plane_normal), -1.0, 1.0)
 
 	var inc_display_rad: float = acos(abs(dot_val))
 	var inc_display_deg: float = rad_to_deg(inc_display_rad)
@@ -1856,12 +2375,12 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	_draw_glow_line(inst_center, plane_end_neg, plane_color, 2.5)
 
 	# Node geometry
-	var node_vec: Vector3 = body_up.cross(h)
+	var node_vec: Vector3 = reference_plane_normal.cross(h)
 	if node_vec.length_squared() < 0.0001:
 		var fallback: Vector3 = Vector3.RIGHT
-		if abs(body_up.dot(fallback)) > 0.95:
+		if abs(reference_plane_normal.dot(fallback)) > 0.95:
 			fallback = Vector3.FORWARD
-		node_vec = (fallback - body_up * body_up.dot(fallback)).normalized()
+		node_vec = (fallback - reference_plane_normal * reference_plane_normal.dot(fallback)).normalized()
 
 	var node_hat: Vector3 = node_vec.normalized()
 	var q_hat: Vector3 = hhat.cross(node_hat).normalized()
@@ -1871,7 +2390,7 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	if u < 0.0:
 		u += TAU
 
-	var vertical_rate: float = v.dot(body_up)
+	var vertical_rate: float = v.dot(reference_plane_normal)
 
 	var active_node_label: String = "AN"
 	var motion_text: String = "Ascending..."
@@ -1884,7 +2403,7 @@ func _draw_inclination_instrument(rect_size: Vector2, center: Vector2) -> void:
 	if is_flat:
 		motion_text = "FLAT"
 
-	var handedness: float = sign(h.dot(body_up))
+	var handedness: float = sign(h.dot(reference_plane_normal))
 	if abs(handedness) < 0.001:
 		handedness = 1.0
 
@@ -2011,7 +2530,6 @@ func _draw() -> void:
 	var focused_child_screen: Vector2 = planet_screen
 	for child_body_name in _get_available_focused_child_body_names():
 		var child_rel_planet: Vector3 = SimulationState.get_body_position(child_body_name) - SimulationState.get_body_position(PRIMARY_BODY_NAME)
-		var child_orbit_radius: float = child_rel_planet.length()
 		var child_screen: Vector2 = _to_screen(child_rel_planet, center)
 		var orbit_color: Color = Color(0.5, 0.5, 0.8)
 		var body_color: Color = Color(0.8, 0.8, 0.95)
@@ -2020,8 +2538,7 @@ func _draw() -> void:
 			body_color = Color(0.92, 0.92, 1.0)
 			focused_child_rel_planet = child_rel_planet
 			focused_child_screen = child_screen
-		if child_orbit_radius > 0.0001:
-			draw_arc(planet_screen, child_orbit_radius * pixels_per_unit, 0.0, TAU, 128, orbit_color, 1.0)
+		_draw_child_orbit_track(center, child_body_name, orbit_color)
 		draw_circle(child_screen, SimulationState.get_body_radius(child_body_name) * pixels_per_unit, body_color)
 
 	var ship_rel_planet: Vector3 = SimulationState.ship_pos - SimulationState.planet_pos
@@ -2130,7 +2647,6 @@ func _draw() -> void:
 		rendered_main_visible_count = main_visible_count
 		rendered_ghost_alpha = ghost_alpha
 		_draw_projected_run_cache(cached_projected_ship_run_draws, 2.0)
-		var ship_pts: PackedVector2Array = cached_projected_ship_points
 
 		var drew_moon_orbit_markers: bool = false
 		if center_mode == CenterMode.MOON and moon_entry_index >= 0:
@@ -2260,6 +2776,9 @@ func _draw() -> void:
 				draw_circle(moving_child_dot, 8.0 if is_selected_child else 7.0, ghost_dot_outer)
 				draw_circle(moving_child_dot, 5.0 if is_selected_child else 4.0, ghost_dot_inner)
 
+				if is_selected_child and not is_revealing:
+					_draw_selected_child_plan_markers(center, child_body_name, planet_screen, planet_radius_px)
+
 		if not is_revealing:
 			var moon_intercept: bool = moon_entry_index >= 0 and moon_entry_index < visible_count
 
@@ -2268,14 +2787,20 @@ func _draw() -> void:
 				if center_mode == CenterMode.MOON and copied_ca_valid and not drew_moon_orbit_markers:
 					draw_circle(copied_ca_screen, 4.0, ca_color)
 					_draw_marker_label(copied_ca_screen, "CA", ca_color, focused_child_screen)
-				elif not currently_in_focused_child_dominance and focused_child_closest_approach_index < ship_pts.size():
-					var ca_screen: Vector2 = ship_pts[focused_child_closest_approach_index]
-					draw_circle(ca_screen, 4.0, ca_color)
-					_draw_marker_label(ca_screen, "CA", ca_color, focused_child_screen)
+				elif not currently_in_focused_child_dominance:
+					if focused_child_closest_approach_index >= 0 and focused_child_closest_approach_index < cached_ship_source_points.size():
+						var ca_screen: Vector2 = _to_screen(cached_ship_source_points[focused_child_closest_approach_index], center)
+						draw_circle(ca_screen, 4.0, ca_color)
+						_draw_marker_label(ca_screen, "CA", ca_color, focused_child_screen)
 
-		if not cached_ship_impact_found and not (center_mode == CenterMode.MOON and moon_entry_index >= 0 and moon_entry_index < visible_count) and solution.predicted_periapsis_index >= 0 and solution.predicted_periapsis_index < ship_pts.size():
-			var pe_screen: Vector2 = ship_pts[solution.predicted_periapsis_index]
+		if (
+			not cached_ship_impact_found
+			and not (center_mode == CenterMode.MOON and moon_entry_index >= 0 and moon_entry_index < visible_count)
+			and solution.predicted_periapsis_index >= 0
+			and solution.predicted_periapsis_index < cached_ship_source_points.size()
+		):
 			var pe_point: Vector3 = cached_ship_source_points[solution.predicted_periapsis_index]
+			var pe_screen: Vector2 = _to_screen(pe_point, center)
 			var pe_proj_r: float = Vector2(pe_point.x, pe_point.z).length()
 			var pe_hidden: bool = pe_proj_r < SimulationState.planet_radius and pe_point.y < 0.0
 
@@ -2292,9 +2817,12 @@ func _draw() -> void:
 			_draw_marker_label(pe_screen, "PE", Color(0.892, 1.0, 0.35), planet_screen)
 
 		if not cached_ship_impact_found and not (center_mode == CenterMode.MOON and moon_entry_index >= 0 and moon_entry_index < visible_count) and solution.orbit_classification != "ESCAPE" and solution.orbit_classification != "IMPACT":
-			if solution.predicted_apoapsis_index >= 0 and solution.predicted_apoapsis_index < ship_pts.size():
-				var ap_screen: Vector2 = ship_pts[solution.predicted_apoapsis_index]
+			if (
+				solution.predicted_apoapsis_index >= 0
+				and solution.predicted_apoapsis_index < cached_ship_source_points.size()
+			):
 				var ap_point: Vector3 = cached_ship_source_points[solution.predicted_apoapsis_index]
+				var ap_screen: Vector2 = _to_screen(ap_point, center)
 				var ap_proj_r: float = Vector2(ap_point.x, ap_point.z).length()
 				var ap_hidden: bool = ap_proj_r < SimulationState.planet_radius and ap_point.y < 0.0
 
@@ -2310,8 +2838,10 @@ func _draw() -> void:
 				_draw_marker_square(ap_screen, 6.0, Color(0.35, 0.75, 1.0))
 				_draw_marker_label(ap_screen, "AP", Color(0.35, 0.75, 1.0), planet_screen)
 
-		if cached_ship_impact_found and cached_ship_impact_index >= 0 and cached_ship_impact_index < ship_pts.size():
-			_draw_impact_marker(ship_pts[cached_ship_impact_index], 10.0, Color(1.0, 0.25, 0.25))
+		if cached_ship_impact_found and cached_ship_impact_index >= 0:
+			if cached_ship_impact_index < cached_ship_source_points.size():
+				var impact_screen: Vector2 = _to_screen(cached_ship_source_points[cached_ship_impact_index], center)
+				_draw_impact_marker(impact_screen, 10.0, Color(1.0, 0.25, 0.25))
 
 		if is_timewarp_selection_available() and timewarp_selector.selection_index >= 0:
 			var selected_point: Dictionary = _get_selected_screen_point(center, focused_child_rel_planet)

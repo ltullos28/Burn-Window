@@ -1,0 +1,6 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://blqfh6c3nmojc"]
+
+[ext_resource type="Texture2D" uid="uid://c4f865jnjif47" path="res://scenes/IBM_5155_screen.png" id="1_2n06i"]
+
+[resource]
+albedo_texture = ExtResource("1_2n06i")

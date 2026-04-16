@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://ptecwv16ytw"]
+
+[ext_resource type="Script" uid="uid://c3d1t00x1gmx3" path="res://scenes/tester_difficulty_notice.gd" id="1_notice"]
+
+[node name="TesterDifficultyNotice" type="CanvasLayer" unique_id=1279411158]
+visible = false
+script = ExtResource("1_notice")
+
+[node name="Overlay" type="ColorRect" parent="." unique_id=1533926378]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.78)
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=2080280832]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="CenterContainer" unique_id=1105432715]
+custom_minimum_size = Vector2(620, 320)
+layout_mode = 2
+
+[node name="PanelMargin" type="MarginContainer" parent="CenterContainer/Panel" unique_id=143350421]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/Panel/PanelMargin" unique_id=200391241]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/Panel/PanelMargin/VBox" unique_id=2008702386]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 30
+text = "Tester Notice"
+horizontal_alignment = 1
+
+[node name="BodyLabel" type="Label" parent="CenterContainer/Panel/PanelMargin/VBox" unique_id=2075470378]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.85490197, 0.8784314, 0.9019608, 1)
+theme_override_font_sizes/font_size = 20
+text = "Thank you for testing the game!
+
+The normal and hard difficulties currently have infinite resources because I need to gather play data.
+
+You can help me by screenshotting the screen shown at the end of your run. o7"
+autowrap_mode = 3
+
+[node name="ContinueButton" type="Button" parent="CenterContainer/Panel/PanelMargin/VBox" unique_id=247560930]
+custom_minimum_size = Vector2(180, 48)
+layout_mode = 2
+text = "Continue"

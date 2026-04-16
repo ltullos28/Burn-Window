@@ -1,0 +1,56 @@
+[gd_scene format=3 uid="uid://bprubijg5gn8t"]
+
+[ext_resource type="Material" uid="uid://dh1hxv0knaof3" path="res://scenes/metal.tres" id="1_i3icx"]
+[ext_resource type="Material" uid="uid://x5g80f8stpen" path="res://scenes/radial.tres" id="2_js5iv"]
+
+[node name="Node3D" type="Node3D" unique_id=1454493363]
+
+[node name="TankBody" type="CSGCylinder3D" parent="." unique_id=1949003045]
+sides = 10
+material = ExtResource("1_i3icx")
+
+[node name="GaugeWindow" type="CSGBox3D" parent="TankBody" unique_id=1560550091]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.2771443)
+operation = 2
+size = Vector3(0.2, 1.75, 0.5)
+material = ExtResource("1_i3icx")
+
+[node name="Gauge" type="CSGBox3D" parent="TankBody" unique_id=635272639]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.2771443)
+size = Vector3(0.15, 1.75, 0.25)
+material = ExtResource("2_js5iv")
+
+[node name="Cap1" type="CSGSphere3D" parent="TankBody" unique_id=265998368]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+material = ExtResource("1_i3icx")
+
+[node name="GaugeWindow" type="CSGBox3D" parent="TankBody/Cap1" unique_id=728941820]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, -0.277)
+operation = 2
+size = Vector3(0.2, 1.75, 0.5)
+material = ExtResource("1_i3icx")
+
+[node name="CSGTorus3D" type="CSGTorus3D" parent="TankBody/Cap1" unique_id=749414551]
+inner_radius = 0.295
+outer_radius = 0.53
+sides = 19
+ring_sides = 11
+material = ExtResource("1_i3icx")
+
+[node name="Cap2" type="CSGSphere3D" parent="TankBody" unique_id=2065111297]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
+material = ExtResource("1_i3icx")
+
+[node name="GaugeWindow" type="CSGBox3D" parent="TankBody/Cap2" unique_id=2110350182]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -0.277)
+operation = 2
+size = Vector3(0.2, 1.75, 0.5)
+material = ExtResource("1_i3icx")
+
+[node name="CSGTorus3D" type="CSGTorus3D" parent="TankBody/Cap2" unique_id=2015707953]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.043794155, 0)
+inner_radius = 0.295
+outer_radius = 0.53
+sides = 19
+ring_sides = 11
+material = ExtResource("1_i3icx")

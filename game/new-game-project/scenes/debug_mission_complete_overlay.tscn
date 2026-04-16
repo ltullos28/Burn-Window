@@ -1,0 +1,116 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/debug_mission_complete_overlay.gd" id="1_controller"]
+
+[node name="DebugMissionCompleteOverlay" type="CanvasLayer"]
+script = ExtResource("1_controller")
+
+[node name="FadeRect" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0)
+
+[node name="UIRoot" type="Control" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="CenterContainer" type="CenterContainer" parent="UIRoot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="UIRoot/CenterContainer"]
+custom_minimum_size = Vector2(540, 300)
+layout_mode = 2
+
+[node name="PanelMargin" type="MarginContainer" parent="UIRoot/CenterContainer/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="UIRoot/CenterContainer/Panel/PanelMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9529412, 0.9490196, 0.9372549, 1)
+theme_override_font_sizes/font_size = 40
+horizontal_alignment = 1
+text = "Mission Complete"
+
+[node name="SubtitleLabel" type="Label" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+text = "Temporary balance readout."
+
+[node name="StatsLabel" type="Label" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Fuel Used: 0.0 / 0.0\nO2 Used: 0.0 / 0.0"
+
+[node name="ResourceLabel" type="Label" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85490197, 0.8784314, 0.9019608, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "Fuel Left: 0.0 / 0.0\nO2 Left: 0.0 / 0.0"
+
+[node name="ScoreLabel" type="Label" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "Score: 0 / 100"
+
+[node name="StarsLabel" type="Label" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9529412, 0.9490196, 0.9372549, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
+text = "Rating: 1 Star"
+
+[node name="ButtonRow" type="HBoxContainer" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="RestartButton" type="Button" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox/ButtonRow"]
+custom_minimum_size = Vector2(180, 46)
+layout_mode = 2
+text = "Restart Run"
+
+[node name="MenuButton" type="Button" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox/ButtonRow"]
+custom_minimum_size = Vector2(180, 46)
+layout_mode = 2
+text = "Return To Menu"
+
+[node name="HintLabel" type="Label" parent="UIRoot/CenterContainer/Panel/PanelMargin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85490197, 0.8784314, 0.9019608, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+text = "Press R to restart this run, or M to return to the title screen."

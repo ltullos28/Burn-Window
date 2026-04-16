@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/challenge_checklist.gd" id="1_checklist"]
+
+[node name="ChallengeChecklist" type="CanvasLayer"]
+layer = 3
+script = ExtResource("1_checklist")
+
+[node name="RootMargin" type="MarginContainer" parent="."]
+anchors_preset = 3
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 46.0
+offset_top = -260.0
+offset_right = 372.0
+offset_bottom = -44.0
+
+[node name="ChecklistPanel" type="PanelContainer" parent="RootMargin"]
+layout_mode = 2
+size_flags_horizontal = 1
+size_flags_vertical = 1
+
+[node name="PanelMargin" type="MarginContainer" parent="RootMargin/ChecklistPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="ChecklistVBox" type="VBoxContainer" parent="RootMargin/ChecklistPanel/PanelMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderLabel" type="Label" parent="RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Flight Checklist"
+
+[node name="SubheaderLabel" type="Label" parent="RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Nacre system objectives before fuel or oxygen run dry."
+
+[node name="DifficultyLabel" type="Label" parent="RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox"]
+layout_mode = 2
+text = "Difficulty: Easy"
+
+[node name="ObjectivesVBox" type="VBoxContainer" parent="RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12

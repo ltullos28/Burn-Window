@@ -4,6 +4,7 @@ const HAZE_SHADER := preload("res://planetary_haze_shell.gdshader")
 
 var haze_material: ShaderMaterial
 var sun_light: DirectionalLight3D
+var haze_shell: MeshInstance3D
 
 func _ready() -> void:
 	body_name = &"moon"
@@ -11,6 +12,10 @@ func _ready() -> void:
 	_setup_moon_haze()
 	_resolve_sun_light()
 	_update_haze_light_dir()
+	_apply_planet_effects_setting()
+	var settings = _settings()
+	if settings != null and not settings.settings_changed.is_connected(_apply_planet_effects_setting):
+		settings.settings_changed.connect(_apply_planet_effects_setting)
 
 func _process(delta: float) -> void:
 	super._process(delta)
@@ -28,7 +33,7 @@ func _setup_moon_haze() -> void:
 	haze_material.set_shader_parameter("terminator_bias", 0.02)
 	haze_material.set_shader_parameter("night_floor", 0.0)
 	haze_material.set_shader_parameter("radial_falloff", 1.7)
-	ensure_visual_shell(&"HazeShell", 1.015, haze_material)
+	haze_shell = ensure_visual_shell(&"HazeShell", 1.015, haze_material)
 
 func _resolve_sun_light() -> void:
 	if sun_light == null:
@@ -42,3 +47,13 @@ func _update_haze_light_dir() -> void:
 		return
 	var light_dir: Vector3 = sun_light.global_transform.basis.z.normalized()
 	haze_material.set_shader_parameter("light_dir_world", light_dir)
+
+
+func _apply_planet_effects_setting() -> void:
+	var settings = _settings()
+	if haze_shell != null:
+		haze_shell.visible = settings == null or settings.planet_effects_enabled
+
+
+func _settings():
+	return get_node_or_null("/root/GameSettings")

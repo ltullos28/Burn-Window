@@ -19,6 +19,8 @@ var rattle_player: AudioStreamPlayer3D
 
 var thrust_active: bool = false
 var rattle_timer: float = 0.0
+var _base_engine_volume_db: float = -14.0
+var _base_rattle_volume_db: float = -16.0
 
 
 func _ready() -> void:
@@ -27,13 +29,17 @@ func _ready() -> void:
 	engine_loop_player = get_node_or_null(engine_loop_player_path) as AudioStreamPlayer3D
 	rattle_player = get_node_or_null(rattle_player_path) as AudioStreamPlayer3D
 
+	_base_engine_volume_db = engine_volume_db
+	_base_rattle_volume_db = rattle_volume_db
+
 	if engine_loop_player != null:
-		engine_loop_player.volume_db = engine_volume_db
 		if not engine_loop_player.finished.is_connected(_on_engine_loop_finished):
 			engine_loop_player.finished.connect(_on_engine_loop_finished)
 
-	if rattle_player != null:
-		rattle_player.volume_db = rattle_volume_db
+	_apply_settings()
+	var settings = _settings()
+	if settings != null and not settings.settings_changed.is_connected(_apply_settings):
+		settings.settings_changed.connect(_apply_settings)
 
 	_schedule_next_rattle()
 
@@ -91,3 +97,19 @@ func _play_rattle() -> void:
 
 	rattle_player.stream = rattle_sounds[randi() % rattle_sounds.size()]
 	rattle_player.play()
+
+
+func _apply_settings() -> void:
+	var settings = _settings()
+	if settings == null:
+		return
+
+	if engine_loop_player != null:
+		engine_loop_player.volume_db = _base_engine_volume_db + settings.volume_scale_to_db_offset(settings.engine_volume)
+
+	if rattle_player != null:
+		rattle_player.volume_db = _base_rattle_volume_db + settings.volume_scale_to_db_offset(settings.engine_volume)
+
+
+func _settings():
+	return get_node_or_null("/root/GameSettings")

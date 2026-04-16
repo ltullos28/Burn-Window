@@ -128,16 +128,16 @@ func reset() -> void:
 	clear_trajectory_prediction_stale()
 	impact_recovery_active = false
 
+	sim_time = 0.0
+	_apply_session_scenario()
+	_rebuild_body_registry()
 	_reset_non_rail_body_states()
 
-	# Start ship in a circular POLAR orbit around the planet
-	# Position stays on +X side of planet
-	# Velocity goes in +Y so the orbit plane becomes X-Y
-
-	ship_pos = planet_pos + Vector3(900.0, 0.0, 0.0)
-	ship_vel = Vector3(0.0, 0.0, 4.216)
-
-	sim_time = 0.0
+	var ship_start: Dictionary = _get_session_ship_start_state()
+	var ship_position_offset: Vector3 = ship_start.get("position_offset", Vector3(900.0, 0.0, 0.0))
+	var ship_velocity: Vector3 = ship_start.get("velocity", Vector3(0.0, 0.0, 4.216))
+	ship_pos = planet_pos + ship_position_offset
+	ship_vel = ship_velocity
 	_update_rail_body_states()
 
 func get_first_body_surface_contact(position: Vector3) -> StringName:
@@ -296,6 +296,18 @@ func get_body_names() -> Array[StringName]:
 		result.append(StringName(body_key))
 	return result
 
+func get_body_definition(body_name: StringName) -> CelestialBodyDefinition:
+	var body_key: String = _get_body_key(body_name)
+	for definition in _get_active_body_definitions():
+		if definition == null or not definition.enabled:
+			continue
+		if _get_body_key(definition.body_name) == body_key:
+			return definition
+	return null
+
+func get_active_body_definitions() -> Array[CelestialBodyDefinition]:
+	return _get_active_body_definitions()
+
 func get_child_body_names(parent_body_name: StringName) -> Array[StringName]:
 	var result: Array[StringName] = []
 	for body_name in get_body_names():
@@ -386,22 +398,41 @@ func _get_orbit_state_at_time(parent_body_name: StringName, orbit: Dictionary, q
 	var parent_pos: Vector3 = parent_state.get("pos", Vector3.ZERO)
 	var parent_vel: Vector3 = parent_state.get("vel", Vector3.ZERO)
 
-	var center_distance: float = orbit.get("center_distance", 0.0)
-	var phase: float = orbit.get("phase", 0.0)
-	var angular_speed: float = orbit.get("angular_speed", 0.0)
-	var linear_speed: float = orbit.get("linear_speed", 0.0)
-	var angle: float = phase + query_time * angular_speed
+	var semi_major_axis: float = float(orbit.get("semi_major_axis", orbit.get("center_distance", 0.0)))
+	var phase: float = float(orbit.get("phase", 0.0))
+	var angular_speed: float = float(orbit.get("angular_speed", 0.0))
+	var eccentricity: float = clampf(float(orbit.get("eccentricity", 0.0)), 0.0, 0.8)
+	var inclination_radians: float = float(orbit.get("inclination_radians", 0.0))
+	var ascending_node_radians: float = float(orbit.get("ascending_node_radians", 0.0))
+	var argument_of_periapsis_radians: float = float(orbit.get("argument_of_periapsis_radians", 0.0))
+	var mean_anomaly: float = phase + query_time * angular_speed
+	var eccentric_anomaly: float = _solve_kepler_equation(mean_anomaly, eccentricity)
+	var sqrt_term: float = sqrt(maxf(1.0 - eccentricity * eccentricity, 0.000001))
+	var cos_e: float = cos(eccentric_anomaly)
+	var sin_e: float = sin(eccentric_anomaly)
+	var radius: float = maxf(semi_major_axis * (1.0 - eccentricity * cos_e), 0.001)
 
-	var local_offset := Vector3(
-		cos(angle) * center_distance,
+	var perifocal_position := Vector3(
+		semi_major_axis * (cos_e - eccentricity),
 		0.0,
-		sin(angle) * center_distance
+		semi_major_axis * sqrt_term * sin_e
 	)
-	var tangent := Vector3(
-		-sin(angle),
+
+	var parent_mu: float = get_body_mu(parent_body_name)
+	var speed_scale: float = sqrt(maxf(parent_mu * semi_major_axis, 0.0)) / radius if parent_mu > 0.0 and semi_major_axis > 0.0 else float(orbit.get("linear_speed", 0.0))
+	var perifocal_velocity := Vector3(
+		-sin_e * speed_scale,
 		0.0,
-		cos(angle)
-	) * linear_speed
+		sqrt_term * cos_e * speed_scale
+	)
+
+	var orbit_basis := Basis.IDENTITY
+	orbit_basis = orbit_basis.rotated(Vector3.UP, ascending_node_radians)
+	orbit_basis = orbit_basis.rotated(Vector3.RIGHT, inclination_radians)
+	orbit_basis = orbit_basis.rotated(Vector3.UP, argument_of_periapsis_radians)
+
+	var local_offset: Vector3 = orbit_basis * perifocal_position
+	var tangent: Vector3 = orbit_basis * perifocal_velocity
 
 	return {
 		"pos": parent_pos + local_offset,
@@ -413,20 +444,37 @@ func _build_circular_orbit_params_from_definition(definition: CelestialBodyDefin
 	if parent_mu <= 0.0 and definition.parent_body_name == LEGACY_PRIMARY_BODY_NAME:
 		parent_mu = planet_surface_gravity * planet_radius * planet_radius
 
-	var angular_speed: float = definition.angular_speed_override
-	if angular_speed < 0.0:
-		angular_speed = _compute_circular_orbit_angular_speed(parent_mu, definition.center_distance)
-
-	var linear_speed: float = definition.linear_speed_override
-	if linear_speed < 0.0:
-		linear_speed = _compute_circular_orbit_linear_speed(parent_mu, definition.center_distance)
+	# Rail bodies should follow physically consistent conics around their parent.
+	# We therefore derive mean motion from the parent body's mu and the orbit's
+	# semi-major axis instead of trusting legacy speed overrides baked into data.
+	var angular_speed: float = _compute_circular_orbit_angular_speed(parent_mu, definition.center_distance)
+	var linear_speed: float = _compute_circular_orbit_linear_speed(parent_mu, definition.center_distance)
 
 	return {
 		"center_distance": definition.center_distance,
+		"semi_major_axis": definition.center_distance,
 		"phase": definition.phase,
 		"angular_speed": angular_speed,
-		"linear_speed": linear_speed
+		"linear_speed": linear_speed,
+		"eccentricity": clampf(definition.eccentricity, 0.0, 0.8),
+		"inclination_radians": deg_to_rad(definition.inclination_degrees),
+		"ascending_node_radians": deg_to_rad(definition.longitude_of_ascending_node_degrees),
+		"argument_of_periapsis_radians": deg_to_rad(definition.argument_of_periapsis_degrees),
 	}
+
+func _solve_kepler_equation(mean_anomaly: float, eccentricity: float) -> float:
+	var wrapped_mean_anomaly: float = wrapf(mean_anomaly, -PI, PI)
+	if eccentricity <= 0.0001:
+		return wrapped_mean_anomaly
+
+	var eccentric_anomaly: float = wrapped_mean_anomaly
+	for _i in range(8):
+		var f: float = eccentric_anomaly - eccentricity * sin(eccentric_anomaly) - wrapped_mean_anomaly
+		var derivative: float = 1.0 - eccentricity * cos(eccentric_anomaly)
+		if absf(derivative) <= 0.000001:
+			break
+		eccentric_anomaly -= f / derivative
+	return eccentric_anomaly
 
 func _register_body(
 	body_name: StringName,
@@ -521,6 +569,72 @@ func _load_celestial_system_definition() -> void:
 		if definition == null:
 			continue
 		body_definitions.append(definition.duplicate(true))
+
+func _apply_session_scenario() -> void:
+	_load_celestial_system_definition()
+
+	var session = _game_session()
+	if session == null:
+		return
+
+	if session.has_method("begin_run"):
+		session.begin_run()
+
+	if not session.has_method("get_active_scenario"):
+		return
+
+	var scenario: Dictionary = session.get_active_scenario()
+	var body_overrides: Dictionary = scenario.get("body_overrides", {})
+	for body_name_variant in body_overrides.keys():
+		var body_name: StringName = StringName(str(body_name_variant))
+		var definition: CelestialBodyDefinition = get_body_definition(body_name)
+		if definition == null:
+			continue
+
+		var overrides: Dictionary = body_overrides.get(body_name_variant, {})
+		if overrides.has("center_distance"):
+			definition.center_distance = float(overrides.get("center_distance", definition.center_distance))
+		if overrides.has("phase"):
+			definition.phase = float(overrides.get("phase", definition.phase))
+		if overrides.has("eccentricity"):
+			definition.eccentricity = clampf(float(overrides.get("eccentricity", definition.eccentricity)), 0.0, 0.8)
+		if overrides.has("inclination_degrees"):
+			definition.inclination_degrees = float(overrides.get("inclination_degrees", definition.inclination_degrees))
+		if overrides.has("longitude_of_ascending_node_degrees"):
+			definition.longitude_of_ascending_node_degrees = float(overrides.get("longitude_of_ascending_node_degrees", definition.longitude_of_ascending_node_degrees))
+		if overrides.has("argument_of_periapsis_degrees"):
+			definition.argument_of_periapsis_degrees = float(overrides.get("argument_of_periapsis_degrees", definition.argument_of_periapsis_degrees))
+		if overrides.has("angular_speed_override"):
+			definition.angular_speed_override = float(overrides.get("angular_speed_override", definition.angular_speed_override))
+		if overrides.has("linear_speed_override"):
+			definition.linear_speed_override = float(overrides.get("linear_speed_override", definition.linear_speed_override))
+
+
+func _get_session_ship_start_state() -> Dictionary:
+	var default_start := {
+		"position_offset": Vector3(900.0, 0.0, 0.0),
+		"velocity": Vector3(0.0, 0.0, 4.216),
+	}
+
+	var session = _game_session()
+	if session == null or not session.has_method("get_active_scenario"):
+		return default_start
+
+	var scenario: Dictionary = session.get_active_scenario()
+	var ship_start: Dictionary = scenario.get("ship_start", {})
+	if ship_start.is_empty():
+		return default_start
+
+	var position_offset: Vector3 = ship_start.get("position_offset", default_start["position_offset"])
+	var velocity: Vector3 = ship_start.get("velocity", default_start["velocity"])
+	return {
+		"position_offset": position_offset,
+		"velocity": velocity,
+	}
+
+
+func _game_session():
+	return get_node_or_null("/root/GameSession")
 
 func _get_active_body_definitions() -> Array[CelestialBodyDefinition]:
 	var definitions: Array[CelestialBodyDefinition] = []

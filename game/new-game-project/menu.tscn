@@ -1,0 +1,115 @@
+[gd_scene format=3 uid="uid://dho5lc60yrile"]
+
+[ext_resource type="Script" uid="uid://uau746vwnsto" path="res://scenes/menu_controller.gd" id="1_mae5d"]
+[ext_resource type="Script" uid="uid://brbblurg7bpma" path="res://scenes/menu_float_motion.gd" id="2_4hy44"]
+[ext_resource type="SphereMesh" uid="uid://cgks3r21rlvrj" path="res://scenes/planet.tres" id="3_4hy44"]
+[ext_resource type="Script" uid="uid://cp6027kqdijr0" path="res://scenes/starfield.gd" id="3_ytr4m"]
+
+[node name="Node3D" type="Node3D" unique_id=1946151568]
+script = ExtResource("1_mae5d")
+
+[node name="CameraRig" type="Node3D" parent="." unique_id=915424301]
+script = ExtResource("2_4hy44")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig" unique_id=1662786777]
+
+[node name="PresentationRig" type="Node3D" parent="." unique_id=1183285333]
+script = ExtResource("2_4hy44")
+
+[node name="BackgroundAnchor" type="Node3D" parent="PresentationRig" unique_id=517429546]
+
+[node name="DistantPlanet" type="Node3D" parent="." unique_id=124696482]
+visible = false
+
+[node name="PlanetMesh" type="MeshInstance3D" parent="DistantPlanet" unique_id=1507950622]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5954266, 0, 0)
+mesh = ExtResource("3_4hy44")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=846292537]
+
+[node name="Starfield" type="Node3D" parent="." unique_id=804681769]
+script = ExtResource("3_ytr4m")
+
+[node name="MultiMeshInstance3D" type="MultiMeshInstance3D" parent="Starfield" unique_id=1005587312]
+
+[node name="MenuAmbientPlayer" type="AudioStreamPlayer" parent="." unique_id=506601158]
+
+[node name="MenuButtonPlayer" type="AudioStreamPlayer" parent="." unique_id=13475045]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=215594060]
+
+[node name="MenuShell" type="Control" parent="CanvasLayer" unique_id=1265117630]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="UI Root" type="Control" parent="CanvasLayer/MenuShell" unique_id=1184814221]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="PanelBackdrop" type="ColorRect" parent="CanvasLayer/MenuShell/UI Root" unique_id=1014566995]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="MenuMargin" type="MarginContainer" parent="CanvasLayer/MenuShell/UI Root" unique_id=959761406]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 137.0
+
+[node name="MenuVBox" type="VBoxContainer" parent="CanvasLayer/MenuShell/UI Root/MenuMargin" unique_id=745121783]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox" unique_id=1867809570]
+layout_mode = 2
+
+[node name="SubtitleLabel" type="Label" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox" unique_id=324311105]
+layout_mode = 2
+
+[node name="MenuColumns" type="HBoxContainer" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox" unique_id=9021378]
+layout_mode = 2
+
+[node name="ButtonColumn" type="VBoxContainer" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns" unique_id=375889168]
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=1976952008]
+layout_mode = 2
+
+[node name="HowToPlayButton" type="Button" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=165576539]
+layout_mode = 2
+
+[node name="SettingsButton" type="Button" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=133818116]
+layout_mode = 2
+
+[node name="CreditsButton" type="Button" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=1839355297]
+layout_mode = 2
+
+[node name="QuitButton" type="Button" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=1275447482]
+layout_mode = 2
+
+[node name="Divider" type="ColorRect" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns" unique_id=109007805]
+layout_mode = 2
+
+[node name="DetailsColumn" type="VBoxContainer" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns" unique_id=981145348]
+layout_mode = 2
+
+[node name="DetailsTitleLabel" type="Label" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns/DetailsColumn" unique_id=1491419735]
+layout_mode = 2
+
+[node name="DetailsBodyLabel" type="Label" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox/MenuColumns/DetailsColumn" unique_id=1450530435]
+layout_mode = 2
+
+[node name="FooterLabel" type="Label" parent="CanvasLayer/MenuShell/UI Root/MenuMargin/MenuVBox" unique_id=127817184]
+layout_mode = 2
+
+[node name="LoadingOverlay" type="ColorRect" parent="CanvasLayer/MenuShell/UI Root" unique_id=1932427112]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="LoadingLabel" type="Label" parent="CanvasLayer/MenuShell/UI Root" unique_id=706942223]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0

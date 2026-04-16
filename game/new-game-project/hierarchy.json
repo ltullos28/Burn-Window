@@ -193,13 +193,13 @@
 							"children": [
 								{
 									"children": [],
-									"name": "@ColorRect@2",
+									"name": "@ColorRect@24",
 									"script": "",
 									"type": "ColorRect"
 								},
 								{
 									"children": [],
-									"name": "@Label@3",
+									"name": "@Label@25",
 									"script": "",
 									"type": "Label"
 								}
@@ -644,6 +644,139 @@
 							"name": "WindowDetect",
 							"script": "res://scenes/winder_interact.gd",
 							"type": "Area3D"
+						},
+						{
+							"children": [
+								{
+									"children": [
+										{
+											"children": [],
+											"name": "GaugeWindow",
+											"script": "",
+											"type": "CSGBox3D"
+										},
+										{
+											"children": [],
+											"name": "Gauge",
+											"script": "",
+											"type": "CSGBox3D"
+										},
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "GaugeWindow",
+													"script": "",
+													"type": "CSGBox3D"
+												},
+												{
+													"children": [],
+													"name": "CSGTorus3D",
+													"script": "",
+													"type": "CSGTorus3D"
+												}
+											],
+											"name": "Cap1",
+											"script": "",
+											"type": "CSGSphere3D"
+										},
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "GaugeWindow",
+													"script": "",
+													"type": "CSGBox3D"
+												},
+												{
+													"children": [],
+													"name": "CSGTorus3D",
+													"script": "",
+													"type": "CSGTorus3D"
+												}
+											],
+											"name": "Cap2",
+											"script": "",
+											"type": "CSGSphere3D"
+										},
+										{
+											"children": [],
+											"name": "DynamicGaugeVisual",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "FuelTank",
+									"script": "res://scenes/resource_tank_gauge.gd",
+									"type": "CSGCylinder3D"
+								},
+								{
+									"children": [
+										{
+											"children": [],
+											"name": "GaugeWindow",
+											"script": "",
+											"type": "CSGBox3D"
+										},
+										{
+											"children": [],
+											"name": "Gauge",
+											"script": "",
+											"type": "CSGBox3D"
+										},
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "GaugeWindow",
+													"script": "",
+													"type": "CSGBox3D"
+												},
+												{
+													"children": [],
+													"name": "CSGTorus3D",
+													"script": "",
+													"type": "CSGTorus3D"
+												}
+											],
+											"name": "Cap1",
+											"script": "",
+											"type": "CSGSphere3D"
+										},
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "GaugeWindow",
+													"script": "",
+													"type": "CSGBox3D"
+												},
+												{
+													"children": [],
+													"name": "CSGTorus3D",
+													"script": "",
+													"type": "CSGTorus3D"
+												}
+											],
+											"name": "Cap2",
+											"script": "",
+											"type": "CSGSphere3D"
+										},
+										{
+											"children": [],
+											"name": "DynamicGaugeVisual",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "OxygenTank",
+									"script": "res://scenes/resource_tank_gauge.gd",
+									"type": "CSGCylinder3D"
+								}
+							],
+							"name": "TankMaster",
+							"script": "res://scenes/ship_resources.gd",
+							"type": "Node3D"
 						}
 					],
 					"name": "Cockpit",
@@ -757,6 +890,12 @@
 					"name": "Seat",
 					"script": "",
 					"type": "Node3D"
+				},
+				{
+					"children": [],
+					"name": "CSGBox3D",
+					"script": "",
+					"type": "CSGBox3D"
 				}
 			],
 			"name": "Ship",
@@ -780,6 +919,836 @@
 			],
 			"name": "CrosshairUI",
 			"script": "",
+			"type": "CanvasLayer"
+		},
+		{
+			"children": [
+				{
+					"children": [
+						{
+							"children": [
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "HeaderLabel",
+													"script": "",
+													"type": "Label"
+												},
+												{
+													"children": [],
+													"name": "SubheaderLabel",
+													"script": "",
+													"type": "Label"
+												},
+												{
+													"children": [],
+													"name": "DifficultyLabel",
+													"script": "",
+													"type": "Label"
+												},
+												{
+													"children": [
+														{
+															"children": [
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Fill",
+																			"script": "",
+																			"type": "ColorRect"
+																		}
+																	],
+																	"name": "@Panel@27",
+																	"script": "",
+																	"type": "Panel"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "@Label@26",
+																			"script": "",
+																			"type": "Label"
+																		}
+																	],
+																	"name": "@VBoxContainer@28",
+																	"script": "",
+																	"type": "VBoxContainer"
+																}
+															],
+															"name": "@HBoxContainer@29",
+															"script": "",
+															"type": "HBoxContainer"
+														},
+														{
+															"children": [
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Fill",
+																			"script": "",
+																			"type": "ColorRect"
+																		}
+																	],
+																	"name": "@Panel@31",
+																	"script": "",
+																	"type": "Panel"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "@Label@30",
+																			"script": "",
+																			"type": "Label"
+																		}
+																	],
+																	"name": "@VBoxContainer@32",
+																	"script": "",
+																	"type": "VBoxContainer"
+																}
+															],
+															"name": "@HBoxContainer@33",
+															"script": "",
+															"type": "HBoxContainer"
+														},
+														{
+															"children": [
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Fill",
+																			"script": "",
+																			"type": "ColorRect"
+																		}
+																	],
+																	"name": "@Panel@35",
+																	"script": "",
+																	"type": "Panel"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "@Label@34",
+																			"script": "",
+																			"type": "Label"
+																		}
+																	],
+																	"name": "@VBoxContainer@36",
+																	"script": "",
+																	"type": "VBoxContainer"
+																}
+															],
+															"name": "@HBoxContainer@37",
+															"script": "",
+															"type": "HBoxContainer"
+														}
+													],
+													"name": "ObjectivesVBox",
+													"script": "",
+													"type": "VBoxContainer"
+												}
+											],
+											"name": "ChecklistVBox",
+											"script": "",
+											"type": "VBoxContainer"
+										}
+									],
+									"name": "PanelMargin",
+									"script": "",
+									"type": "MarginContainer"
+								}
+							],
+							"name": "ChecklistPanel",
+							"script": "",
+							"type": "PanelContainer"
+						}
+					],
+					"name": "RootMargin",
+					"script": "",
+					"type": "MarginContainer"
+				}
+			],
+			"name": "ChallengeChecklist",
+			"script": "res://scenes/challenge_checklist.gd",
+			"type": "CanvasLayer"
+		},
+		{
+			"children": [
+				{
+					"children": [],
+					"name": "PauseButtonPlayer",
+					"script": "",
+					"type": "AudioStreamPlayer"
+				},
+				{
+					"children": [],
+					"name": "Overlay",
+					"script": "",
+					"type": "ColorRect"
+				},
+				{
+					"children": [
+						{
+							"children": [
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "TitleLabel",
+													"script": "",
+													"type": "Label"
+												},
+												{
+													"children": [
+														{
+															"children": [
+																{
+																	"children": [],
+																	"name": "ResumeButton",
+																	"script": "res://scenes/menu_focus_button.gd",
+																	"type": "Button"
+																},
+																{
+																	"children": [],
+																	"name": "SettingsButton",
+																	"script": "res://scenes/menu_focus_button.gd",
+																	"type": "Button"
+																},
+																{
+																	"children": [],
+																	"name": "ReturnToMenuButton",
+																	"script": "res://scenes/menu_focus_button.gd",
+																	"type": "Button"
+																},
+																{
+																	"children": [],
+																	"name": "QuitButton",
+																	"script": "res://scenes/menu_focus_button.gd",
+																	"type": "Button"
+																}
+															],
+															"name": "ButtonColumn",
+															"script": "",
+															"type": "VBoxContainer"
+														},
+														{
+															"children": [],
+															"name": "Divider",
+															"script": "",
+															"type": "ColorRect"
+														},
+														{
+															"children": [
+																{
+																	"children": [],
+																	"name": "DetailsTitleLabel",
+																	"script": "",
+																	"type": "Label"
+																},
+																{
+																	"children": [],
+																	"name": "DetailsBodyLabel",
+																	"script": "",
+																	"type": "Label"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "SettingsIntroLabel",
+																			"script": "",
+																			"type": "Label"
+																		},
+																		{
+																			"children": [
+																				{
+																					"children": [
+																						{
+																							"children": [],
+																							"name": "VideoHeader",
+																							"script": "",
+																							"type": "Label"
+																						},
+																						{
+																							"children": [
+																								{
+																									"children": [],
+																									"name": "FullscreenLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "FullscreenToggle",
+																									"script": "",
+																									"type": "CheckButton"
+																								},
+																								{
+																									"children": [],
+																									"name": "FullscreenValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "ResolutionLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "ResolutionOptionButton",
+																									"script": "",
+																									"type": "OptionButton"
+																								},
+																								{
+																									"children": [],
+																									"name": "ResolutionValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "CameraFovLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "CameraFovSlider",
+																									"script": "",
+																									"type": "HSlider"
+																								},
+																								{
+																									"children": [],
+																									"name": "CameraFovValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "PlanetEffectsLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "PlanetEffectsToggle",
+																									"script": "",
+																									"type": "CheckButton"
+																								},
+																								{
+																									"children": [],
+																									"name": "PlanetEffectsValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								}
+																							],
+																							"name": "VideoGrid",
+																							"script": "",
+																							"type": "GridContainer"
+																						},
+																						{
+																							"children": [],
+																							"name": "ControlsHeader",
+																							"script": "",
+																							"type": "Label"
+																						},
+																						{
+																							"children": [
+																								{
+																									"children": [],
+																									"name": "MouseSensitivityLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "MouseSensitivitySlider",
+																									"script": "",
+																									"type": "HSlider"
+																								},
+																								{
+																									"children": [],
+																									"name": "MouseSensitivityValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "InvertYLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "InvertYToggle",
+																									"script": "",
+																									"type": "CheckButton"
+																								},
+																								{
+																									"children": [],
+																									"name": "InvertYValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "MouseSmoothingLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "MouseSmoothingToggle",
+																									"script": "",
+																									"type": "CheckButton"
+																								},
+																								{
+																									"children": [],
+																									"name": "MouseSmoothingValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								}
+																							],
+																							"name": "ControlsGrid",
+																							"script": "",
+																							"type": "GridContainer"
+																						},
+																						{
+																							"children": [
+																								{
+																									"children": [
+																										{
+																											"children": [],
+																											"name": "MouseSmoothingAmountLabel",
+																											"script": "",
+																											"type": "Label"
+																										},
+																										{
+																											"children": [],
+																											"name": "MouseSmoothingSlider",
+																											"script": "",
+																											"type": "HSlider"
+																										},
+																										{
+																											"children": [],
+																											"name": "MouseSmoothingValueLabel",
+																											"script": "",
+																											"type": "Label"
+																										}
+																									],
+																									"name": "MouseSmoothingDetailGrid",
+																									"script": "",
+																									"type": "GridContainer"
+																								}
+																							],
+																							"name": "MouseSmoothingDetailMargin",
+																							"script": "",
+																							"type": "MarginContainer"
+																						},
+																						{
+																							"children": [],
+																							"name": "GameplayHeader",
+																							"script": "",
+																							"type": "Label"
+																						},
+																						{
+																							"children": [
+																								{
+																									"children": [],
+																									"name": "CameraShakeLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "CameraShakeToggle",
+																									"script": "",
+																									"type": "CheckButton"
+																								},
+																								{
+																									"children": [],
+																									"name": "CameraShakeValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								}
+																							],
+																							"name": "GameplayGrid",
+																							"script": "",
+																							"type": "GridContainer"
+																						},
+																						{
+																							"children": [],
+																							"name": "AudioHeader",
+																							"script": "",
+																							"type": "Label"
+																						},
+																						{
+																							"children": [
+																								{
+																									"children": [],
+																									"name": "EngineVolumeLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "EngineVolumeSlider",
+																									"script": "",
+																									"type": "HSlider"
+																								},
+																								{
+																									"children": [],
+																									"name": "EngineVolumeValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "AmbientVolumeLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "AmbientVolumeSlider",
+																									"script": "",
+																									"type": "HSlider"
+																								},
+																								{
+																									"children": [],
+																									"name": "AmbientVolumeValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "UiVolumeLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "UiVolumeSlider",
+																									"script": "",
+																									"type": "HSlider"
+																								},
+																								{
+																									"children": [],
+																									"name": "UiVolumeValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								}
+																							],
+																							"name": "AudioGrid",
+																							"script": "",
+																							"type": "GridContainer"
+																						}
+																					],
+																					"name": "SettingsScrollContent",
+																					"script": "",
+																					"type": "VBoxContainer"
+																				}
+																			],
+																			"name": "SettingsScroll",
+																			"script": "",
+																			"type": "ScrollContainer"
+																		},
+																		{
+																			"children": [
+																				{
+																					"children": [],
+																					"name": "ResetSettingsButton",
+																					"script": "res://scenes/menu_focus_button.gd",
+																					"type": "Button"
+																				},
+																				{
+																					"children": [],
+																					"name": "ApplySettingsButton",
+																					"script": "res://scenes/menu_focus_button.gd",
+																					"type": "Button"
+																				}
+																			],
+																			"name": "SettingsButtonRow",
+																			"script": "",
+																			"type": "HBoxContainer"
+																		}
+																	],
+																	"name": "SettingsPanel",
+																	"script": "",
+																	"type": "VBoxContainer"
+																}
+															],
+															"name": "DetailsColumn",
+															"script": "",
+															"type": "VBoxContainer"
+														}
+													],
+													"name": "MenuColumns",
+													"script": "",
+													"type": "HBoxContainer"
+												}
+											],
+											"name": "MenuVBox",
+											"script": "",
+											"type": "VBoxContainer"
+										}
+									],
+									"name": "MenuMargin",
+									"script": "",
+									"type": "MarginContainer"
+								}
+							],
+							"name": "MenuShell",
+							"script": "",
+							"type": "PanelContainer"
+						},
+						{
+							"children": [
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [
+														{
+															"children": [],
+															"name": "SettingsPromptTitle",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [],
+															"name": "SettingsPromptBody",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [
+																{
+																	"children": [],
+																	"name": "SettingsPromptDiscardButton",
+																	"script": "res://scenes/menu_focus_button.gd",
+																	"type": "Button"
+																},
+																{
+																	"children": [],
+																	"name": "SettingsPromptApplyButton",
+																	"script": "res://scenes/menu_focus_button.gd",
+																	"type": "Button"
+																}
+															],
+															"name": "SettingsPromptButtonRow",
+															"script": "",
+															"type": "HBoxContainer"
+														}
+													],
+													"name": "SettingsPromptVBox",
+													"script": "",
+													"type": "VBoxContainer"
+												}
+											],
+											"name": "SettingsPromptMargin",
+											"script": "",
+											"type": "MarginContainer"
+										}
+									],
+									"name": "SettingsPromptPanel",
+									"script": "",
+									"type": "PanelContainer"
+								}
+							],
+							"name": "SettingsPromptOverlay",
+							"script": "",
+							"type": "ColorRect"
+						}
+					],
+					"name": "UIRoot",
+					"script": "",
+					"type": "Control"
+				}
+			],
+			"name": "PauseMenu",
+			"script": "res://scenes/pause_menu_controller.gd",
+			"type": "CanvasLayer"
+		},
+		{
+			"children": [
+				{
+					"children": [],
+					"name": "FadeRect",
+					"script": "",
+					"type": "ColorRect"
+				},
+				{
+					"children": [
+						{
+							"children": [
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [
+														{
+															"children": [],
+															"name": "TitleLabel",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [],
+															"name": "SubtitleLabel",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [],
+															"name": "StatsLabel",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [],
+															"name": "ResourceLabel",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [],
+															"name": "ScoreLabel",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [],
+															"name": "StarsLabel",
+															"script": "",
+															"type": "Label"
+														},
+														{
+															"children": [
+																{
+																	"children": [],
+																	"name": "RestartButton",
+																	"script": "",
+																	"type": "Button"
+																},
+																{
+																	"children": [],
+																	"name": "MenuButton",
+																	"script": "",
+																	"type": "Button"
+																}
+															],
+															"name": "ButtonRow",
+															"script": "",
+															"type": "HBoxContainer"
+														},
+														{
+															"children": [],
+															"name": "HintLabel",
+															"script": "",
+															"type": "Label"
+														}
+													],
+													"name": "VBox",
+													"script": "",
+													"type": "VBoxContainer"
+												}
+											],
+											"name": "PanelMargin",
+											"script": "",
+											"type": "MarginContainer"
+										}
+									],
+									"name": "Panel",
+									"script": "",
+									"type": "PanelContainer"
+								}
+							],
+							"name": "CenterContainer",
+							"script": "",
+							"type": "CenterContainer"
+						}
+					],
+					"name": "UIRoot",
+					"script": "",
+					"type": "Control"
+				}
+			],
+			"name": "DebugMissionCompleteOverlay",
+			"script": "res://scenes/debug_mission_complete_overlay.gd",
+			"type": "CanvasLayer"
+		},
+		{
+			"children": [
+				{
+					"children": [],
+					"name": "Overlay",
+					"script": "",
+					"type": "ColorRect"
+				},
+				{
+					"children": [
+						{
+							"children": [
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "TitleLabel",
+													"script": "",
+													"type": "Label"
+												},
+												{
+													"children": [],
+													"name": "BodyLabel",
+													"script": "",
+													"type": "Label"
+												},
+												{
+													"children": [],
+													"name": "ContinueButton",
+													"script": "",
+													"type": "Button"
+												}
+											],
+											"name": "VBox",
+											"script": "",
+											"type": "VBoxContainer"
+										}
+									],
+									"name": "PanelMargin",
+									"script": "",
+									"type": "MarginContainer"
+								}
+							],
+							"name": "Panel",
+							"script": "",
+							"type": "PanelContainer"
+						}
+					],
+					"name": "CenterContainer",
+					"script": "",
+					"type": "CenterContainer"
+				}
+			],
+			"name": "TesterDifficultyNotice",
+			"script": "res://scenes/tester_difficulty_notice.gd",
 			"type": "CanvasLayer"
 		},
 		{
@@ -839,6 +1808,33 @@
 			],
 			"name": "PlanetVisual",
 			"script": "res://planet_render.gd",
+			"type": "Node3D"
+		},
+		{
+			"children": [
+				{
+					"children": [
+						{
+							"children": [
+								{
+									"children": [],
+									"name": "HazeShell",
+									"script": "",
+									"type": "MeshInstance3D"
+								}
+							],
+							"name": "MeshInstance3D",
+							"script": "",
+							"type": "MeshInstance3D"
+						}
+					],
+					"name": "Moon 2Visual",
+					"script": "res://moon_body_visual.gd",
+					"type": "Node3D"
+				}
+			],
+			"name": "ChildBodyVisuals",
+			"script": "res://child_body_visuals.gd",
 			"type": "Node3D"
 		}
 	],

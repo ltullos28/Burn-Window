@@ -5,7 +5,7 @@ extends Node3D
 @export var interact_ray_path: NodePath
 @export var crosshair_ui_path: NodePath
 
-@export var snap_speed: float = 7.5
+@export var snap_speed: float = 10.0
 @export var zoom_speed: float = 8.0
 @export var mouse_sensitivity: float = 0.0025
 
@@ -41,6 +41,16 @@ var seat_root: Node3D
 var camera_3d: Camera3D
 var interact_ray: RayCast3D
 var crosshair_ui: CanvasLayer
+var ambience_player: AudioStreamPlayer
+var shared_button_player: AudioStreamPlayer3D
+var whirring_player: AudioStreamPlayer
+var beep_player: AudioStreamPlayer3D
+
+var _base_ambience_volume_db: float = -20.0
+var _base_shared_button_volume_db: float = 0.0
+var _base_whirring_volume_db: float = 0.0
+var _base_beep_volume_db: float = 0.0
+var _audio_base_levels_resolved: bool = false
 
 var held_interactable: Object = null
 var current_highlighted: Object = null
@@ -52,6 +62,8 @@ var free_yaw: float = 0.0
 var free_pitch: float = 0.0
 var current_yaw: float = 0.0
 var current_pitch: float = 0.0
+var mouse_smoothing_enabled: bool = true
+var active_mouse_smoothing_speed: float = 10.0
 var warp_hold_direction: int = 0
 var warp_hold_repeat_timer: float = 0.0
 var warp_hold_repeat_started: bool = false
@@ -81,11 +93,17 @@ func _ready() -> void:
 
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
+	active_mouse_smoothing_speed = snap_speed
 	default_camera_local_transform = camera_3d.transform
+	_resolve_audio_refs()
 	_resolve_special_refs()
 	_setup_death_overlay()
 	if not SimulationState.ship_impacted.is_connected(_on_ship_impacted):
 		SimulationState.ship_impacted.connect(_on_ship_impacted)
+	_apply_settings()
+	var settings = _settings()
+	if settings != null and not settings.settings_changed.is_connected(_apply_settings):
+		settings.settings_changed.connect(_apply_settings)
 	_update_crosshair_visibility()
 	_update_crosshair_icon("normal")
 
@@ -100,8 +118,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseMotion and enable_mouse_look and active_zoom_target == null:
+		var settings = _settings()
 		free_yaw -= event.relative.x * mouse_sensitivity
-		free_pitch -= event.relative.y * mouse_sensitivity
+		var pitch_sign := 1.0 if settings != null and settings.invert_y_look else -1.0
+		free_pitch += event.relative.y * mouse_sensitivity * pitch_sign
 
 		var max_yaw := deg_to_rad(max_free_yaw_degrees)
 		var max_pitch := deg_to_rad(max_free_pitch_degrees)
@@ -137,13 +157,20 @@ func _process(delta: float) -> void:
 	var desired_yaw: float = free_yaw
 	var desired_pitch: float = free_pitch
 
-	current_yaw = lerp_angle(current_yaw, desired_yaw, delta * snap_speed)
-	current_pitch = lerp_angle(current_pitch, desired_pitch, delta * snap_speed)
+	if mouse_smoothing_enabled:
+		current_yaw = lerp_angle(current_yaw, desired_yaw, delta * active_mouse_smoothing_speed)
+		current_pitch = lerp_angle(current_pitch, desired_pitch, delta * active_mouse_smoothing_speed)
+	else:
+		current_yaw = desired_yaw
+		current_pitch = desired_pitch
 
 	var desired_transform := default_camera_local_transform
 	desired_transform.basis = Basis.from_euler(Vector3(current_pitch, current_yaw, 0.0))
 	desired_transform = _apply_thrust_feedback_to_transform(desired_transform, delta)
-	camera_3d.transform = camera_3d.transform.interpolate_with(desired_transform, delta * snap_speed)
+	if mouse_smoothing_enabled:
+		camera_3d.transform = camera_3d.transform.interpolate_with(desired_transform, delta * active_mouse_smoothing_speed)
+	else:
+		camera_3d.transform = desired_transform
 
 func _setup_death_overlay() -> void:
 	death_overlay_layer = CanvasLayer.new()
@@ -169,6 +196,13 @@ func _setup_death_overlay() -> void:
 	death_overlay_layer.add_child(death_overlay_label)
 
 func _on_ship_impacted(_body_name: StringName) -> void:
+	trigger_death()
+
+func trigger_death(message_override: String = "") -> void:
+	if death_sequence_active:
+		return
+
+	death_overlay_label.text = message_override if not message_override.is_empty() else death_message
 	death_sequence_active = true
 	death_phase = "fade_out"
 	death_phase_elapsed = 0.0
@@ -212,6 +246,7 @@ func _update_death_sequence(delta: float) -> void:
 			if fade_in_t >= 1.0:
 				death_overlay_rect.color = Color(0.0, 0.0, 0.0, 0.0)
 				death_overlay_label.visible = false
+				death_overlay_label.text = death_message
 				death_sequence_active = false
 				death_phase = "idle"
 				death_phase_elapsed = 0.0
@@ -325,10 +360,12 @@ func _update_crosshair_icon(mode: String) -> void:
 			crosshair_rect.texture = normal_crosshair_texture
 
 func _apply_thrust_feedback_to_transform(t: Transform3D, delta: float) -> Transform3D:
+	var settings = _settings()
+	var shake_strength := 1.0 if settings != null and settings.camera_shake_enabled else 0.0
 	var recoil_target := Vector3.ZERO
 
 	if thrust_feedback_active:
-		recoil_target = Vector3(0.0, 0.0, thrust_recoil_distance)
+		recoil_target = Vector3(0.0, 0.0, thrust_recoil_distance * shake_strength)
 		thrust_feedback_time += delta
 	else:
 		thrust_feedback_time = 0.0
@@ -341,10 +378,10 @@ func _apply_thrust_feedback_to_transform(t: Transform3D, delta: float) -> Transf
 	var shake_pos := Vector3.ZERO
 	var shake_rot := Vector3.ZERO
 
-	if thrust_feedback_active:
-		shake_pos.x = sin(thrust_feedback_time * thrust_shake_frequency_1) * thrust_shake_x
-		shake_pos.y = cos(thrust_feedback_time * thrust_shake_frequency_2) * thrust_shake_y
-		shake_rot.z = deg_to_rad(sin(thrust_feedback_time * 41.0) * thrust_shake_rot_z_degrees)
+	if thrust_feedback_active and shake_strength > 0.0:
+		shake_pos.x = sin(thrust_feedback_time * thrust_shake_frequency_1) * thrust_shake_x * shake_strength
+		shake_pos.y = cos(thrust_feedback_time * thrust_shake_frequency_2) * thrust_shake_y * shake_strength
+		shake_rot.z = deg_to_rad(sin(thrust_feedback_time * 41.0) * thrust_shake_rot_z_degrees * shake_strength)
 
 	t.origin += current_recoil_offset + shake_pos
 	t.basis = t.basis * Basis.from_euler(shake_rot)
@@ -474,3 +511,66 @@ func _clear_trajectory_timewarp_hold() -> void:
 	warp_hold_direction = 0
 	warp_hold_repeat_timer = 0.0
 	warp_hold_repeat_started = false
+
+
+func _resolve_audio_refs() -> void:
+	if ambience_player == null:
+		ambience_player = get_node_or_null(NodePath("AmbiencePlayer3D")) as AudioStreamPlayer
+	if shared_button_player == null:
+		shared_button_player = get_node_or_null(NodePath("SharedButtonClick3D")) as AudioStreamPlayer3D
+	if whirring_player == null:
+		whirring_player = get_node_or_null(NodePath("WhirringPlayer3D")) as AudioStreamPlayer
+	if beep_player == null:
+		beep_player = get_node_or_null(NodePath("../Cockpit/IBM_5155/BeepPlayer3D")) as AudioStreamPlayer3D
+
+	if _audio_base_levels_resolved:
+		return
+
+	if ambience_player != null:
+		var ambient_target: Variant = ambience_player.get("target_volume_db")
+		_base_ambience_volume_db = float(ambient_target) if ambient_target != null else ambience_player.volume_db
+	if shared_button_player != null:
+		_base_shared_button_volume_db = shared_button_player.volume_db
+	if whirring_player != null:
+		_base_whirring_volume_db = whirring_player.volume_db
+	if beep_player != null:
+		_base_beep_volume_db = beep_player.volume_db
+
+	_audio_base_levels_resolved = true
+
+
+func _apply_settings() -> void:
+	var settings = _settings()
+	if settings == null:
+		return
+
+	mouse_sensitivity = settings.mouse_sensitivity
+	mouse_smoothing_enabled = settings.mouse_smoothing_enabled
+	active_mouse_smoothing_speed = settings.mouse_smoothing_speed
+
+	if camera_3d != null:
+		camera_3d.fov = settings.camera_fov
+
+	_resolve_audio_refs()
+
+	if ambience_player != null:
+		var ambience_db: float = _base_ambience_volume_db + settings.volume_scale_to_db_offset(settings.ambient_volume)
+		if ambience_player.has_method("set_target_volume_db"):
+			ambience_player.set_target_volume_db(ambience_db, true)
+		else:
+			ambience_player.volume_db = ambience_db
+
+	var ui_db_offset: float = settings.volume_scale_to_db_offset(settings.ui_volume)
+
+	if shared_button_player != null:
+		shared_button_player.volume_db = _base_shared_button_volume_db + ui_db_offset
+
+	if whirring_player != null:
+		whirring_player.volume_db = _base_whirring_volume_db + ui_db_offset
+
+	if beep_player != null:
+		beep_player.volume_db = _base_beep_volume_db + ui_db_offset
+
+
+func _settings():
+	return get_node_or_null("/root/GameSettings")

@@ -35,30 +35,28 @@ var body_closest_approaches: Dictionary = {}
 var body_encounters: Dictionary = {}
 
 func set_body_relative_points(body_name: StringName, points: Array[Vector3]) -> void:
-	body_relative_points[String(body_name)] = points.duplicate()
+	var body_key: String = String(body_name)
+	var stored_points: Array[Vector3] = points.duplicate()
+	body_relative_points[body_key] = stored_points
 	var encounter: Dictionary = _get_or_create_body_encounter(body_name)
-	encounter["relative_points"] = points.duplicate()
-	body_encounters[String(body_name)] = encounter
+	encounter["relative_points"] = stored_points
+	body_encounters[body_key] = encounter
 
 func get_body_relative_points(body_name: StringName) -> Array[Vector3]:
-	var points = body_relative_points.get(String(body_name), [])
-	var typed_points: Array[Vector3] = []
-	for point in points:
-		typed_points.append(point)
-	return typed_points
+	var points: Array[Vector3] = body_relative_points.get(String(body_name), [])
+	return points.duplicate()
 
 func set_body_dominance_mask(body_name: StringName, dominance: Array[bool]) -> void:
-	body_dominance_masks[String(body_name)] = dominance.duplicate()
+	var body_key: String = String(body_name)
+	var stored_dominance: Array[bool] = dominance.duplicate()
+	body_dominance_masks[body_key] = stored_dominance
 	var encounter: Dictionary = _get_or_create_body_encounter(body_name)
-	encounter["dominance_mask"] = dominance.duplicate()
-	body_encounters[String(body_name)] = encounter
+	encounter["dominance_mask"] = stored_dominance
+	body_encounters[body_key] = encounter
 
 func get_body_dominance_mask(body_name: StringName) -> Array[bool]:
-	var dominance = body_dominance_masks.get(String(body_name), [])
-	var typed_dominance: Array[bool] = []
-	for value in dominance:
-		typed_dominance.append(value)
-	return typed_dominance
+	var dominance: Array[bool] = body_dominance_masks.get(String(body_name), [])
+	return dominance.duplicate()
 
 func set_body_closest_approach(
 	body_name: StringName,
@@ -118,10 +116,12 @@ func set_body_encounter_details(
 	body_encounters[String(body_name)] = encounter
 
 func _get_or_create_body_encounter(body_name: StringName) -> Dictionary:
-	var encounter: Dictionary = body_encounters.get(String(body_name), {})
+	var body_key: String = String(body_name)
+	var encounter: Dictionary = body_encounters.get(body_key, {})
 	if encounter.is_empty():
 		encounter = _build_default_body_encounter(body_name)
-	return encounter.duplicate(true)
+		body_encounters[body_key] = encounter
+	return encounter
 
 func _build_default_body_encounter(body_name: StringName) -> Dictionary:
 	return {

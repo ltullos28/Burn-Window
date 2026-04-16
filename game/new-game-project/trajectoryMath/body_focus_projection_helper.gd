@@ -37,10 +37,34 @@ func get_inclination_reference_body_name(center_mode: int, focused_child_body_na
 
 func get_inclination_reference_body_state(center_mode: int, focused_child_body_name: StringName) -> Dictionary:
 	var body_name: StringName = get_inclination_reference_body_name(center_mode, focused_child_body_name)
-	return {
+	var body_state := {
 		"name": body_name,
 		"pos": SimulationState.get_body_position(body_name),
 		"vel": SimulationState.get_body_velocity(body_name),
 		"up": SimulationState.get_body_up(body_name),
 		"radius": SimulationState.get_body_radius(body_name),
 	}
+	body_state["frame_origin_pos"] = body_state["pos"]
+	body_state["frame_origin_vel"] = body_state["vel"]
+	body_state["plane_normal"] = body_state["up"]
+
+	if center_mode != CENTER_MODE_MOON or body_name == PRIMARY_BODY_NAME:
+		return body_state
+
+	var parent_body_name: StringName = SimulationState.get_body_parent(body_name)
+	if parent_body_name == &"":
+		return body_state
+
+	var parent_pos: Vector3 = SimulationState.get_body_position(parent_body_name)
+	var parent_vel: Vector3 = SimulationState.get_body_velocity(parent_body_name)
+	var rel_pos: Vector3 = body_state["pos"] - parent_pos
+	var rel_vel: Vector3 = body_state["vel"] - parent_vel
+	var orbital_plane_normal: Vector3 = rel_pos.cross(rel_vel).normalized()
+	if orbital_plane_normal.length_squared() <= 0.0001:
+		orbital_plane_normal = body_state["up"]
+
+	body_state["frame_origin_pos"] = parent_pos
+	body_state["frame_origin_vel"] = parent_vel
+	body_state["plane_normal"] = orbital_plane_normal
+	body_state["frame_reference_body_name"] = parent_body_name
+	return body_state

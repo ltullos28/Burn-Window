@@ -10,6 +10,7 @@ extends Node3D
 @export var angular_drag: float = 0.1
 
 @export var engine_audio_path: NodePath
+@export var resource_controller_path: NodePath
 
 var angular_velocity: Vector3 = Vector3.ZERO
 
@@ -20,10 +21,12 @@ var roll_control: float = 0.0
 var thrust_held: bool = false
 
 var engine_audio: Node
+var resource_controller: Node
 
 func _ready() -> void:
 	position = Vector3.ZERO
 	engine_audio = get_node_or_null(engine_audio_path)
+	resource_controller = get_node_or_null(resource_controller_path)
 
 func _physics_process(delta: float) -> void:
 	var sim_delta: float = SimulationState.get_current_sim_delta(delta)
@@ -39,6 +42,10 @@ func _physics_process(delta: float) -> void:
 		pitch_control = 0.0
 		yaw_control = 0.0
 		roll_control = 0.0
+
+	if thrust_held and resource_controller != null and resource_controller.has_method("can_thrust"):
+		if not resource_controller.can_thrust():
+			set_thrust_held(false)
 
 	if thrust_held and not controls_locked:
 		var world_accel: Vector3 = global_transform.basis * Vector3(0.0, 0.0, main_thrust)

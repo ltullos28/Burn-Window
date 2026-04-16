@@ -22,9 +22,14 @@ func _compile_bodies() -> Array[Dictionary]:
 			"static_pos": record.get("pos", Vector3.ZERO),
 			"static_vel": record.get("vel", Vector3.ZERO),
 			"orbit_center_distance": orbit.get("center_distance", 0.0),
+			"orbit_semi_major_axis": orbit.get("semi_major_axis", orbit.get("center_distance", 0.0)),
 			"orbit_phase": orbit.get("phase", 0.0),
 			"orbit_angular_speed": orbit.get("angular_speed", 0.0),
 			"orbit_linear_speed": orbit.get("linear_speed", 0.0),
+			"orbit_eccentricity": orbit.get("eccentricity", 0.0),
+			"orbit_inclination_radians": orbit.get("inclination_radians", 0.0),
+			"orbit_ascending_node_radians": orbit.get("ascending_node_radians", 0.0),
+			"orbit_argument_of_periapsis_radians": orbit.get("argument_of_periapsis_radians", 0.0),
 			"is_on_rails": parent_body_name != &"" and not orbit.is_empty(),
 		}
 
@@ -81,23 +86,64 @@ func _evaluate_body_states_for_time(
 			parent_pos = body_positions[parent_index]
 			parent_vel = body_velocities[parent_index]
 
-		var orbit_center_distance: float = body.get("orbit_center_distance", 0.0)
-		var orbit_angular_speed: float = body.get("orbit_angular_speed", 0.0)
-		var orbit_linear_speed: float = body.get("orbit_linear_speed", 0.0)
-		var angle: float = body.get("orbit_phase", 0.0) + query_time * orbit_angular_speed
-		var local_offset: Vector3 = Vector3(
-			cos(angle) * orbit_center_distance,
+		var semi_major_axis: float = float(body.get("orbit_semi_major_axis", body.get("orbit_center_distance", 0.0)))
+		var orbit_phase: float = float(body.get("orbit_phase", 0.0))
+		var orbit_angular_speed: float = float(body.get("orbit_angular_speed", 0.0))
+		var orbit_linear_speed: float = float(body.get("orbit_linear_speed", 0.0))
+		var eccentricity: float = clampf(float(body.get("orbit_eccentricity", 0.0)), 0.0, 0.8)
+		var inclination_radians: float = float(body.get("orbit_inclination_radians", 0.0))
+		var ascending_node_radians: float = float(body.get("orbit_ascending_node_radians", 0.0))
+		var argument_of_periapsis_radians: float = float(body.get("orbit_argument_of_periapsis_radians", 0.0))
+		var mean_anomaly: float = orbit_phase + query_time * orbit_angular_speed
+		var eccentric_anomaly: float = _solve_kepler_equation(mean_anomaly, eccentricity)
+		var sqrt_term: float = sqrt(maxf(1.0 - eccentricity * eccentricity, 0.000001))
+		var cos_e: float = cos(eccentric_anomaly)
+		var sin_e: float = sin(eccentric_anomaly)
+		var radius: float = maxf(semi_major_axis * (1.0 - eccentricity * cos_e), 0.001)
+
+		var perifocal_position: Vector3 = Vector3(
+			semi_major_axis * (cos_e - eccentricity),
 			0.0,
-			sin(angle) * orbit_center_distance
+			semi_major_axis * sqrt_term * sin_e
 		)
-		var tangent: Vector3 = Vector3(
-			-sin(angle),
+
+		var parent_mu: float = 0.0
+		if parent_index >= 0 and parent_index < compiled_bodies.size():
+			parent_mu = float(compiled_bodies[parent_index].get("mu", 0.0))
+		var speed_scale: float = orbit_linear_speed
+		if parent_mu > 0.0 and semi_major_axis > 0.0:
+			speed_scale = sqrt(maxf(parent_mu * semi_major_axis, 0.0)) / radius
+
+		var perifocal_velocity: Vector3 = Vector3(
+			-sin_e * speed_scale,
 			0.0,
-			cos(angle)
-		) * orbit_linear_speed
+			sqrt_term * cos_e * speed_scale
+		)
+
+		var orbit_basis := Basis.IDENTITY
+		orbit_basis = orbit_basis.rotated(Vector3.UP, ascending_node_radians)
+		orbit_basis = orbit_basis.rotated(Vector3.RIGHT, inclination_radians)
+		orbit_basis = orbit_basis.rotated(Vector3.UP, argument_of_periapsis_radians)
+
+		var local_offset: Vector3 = orbit_basis * perifocal_position
+		var tangent: Vector3 = orbit_basis * perifocal_velocity
 
 		body_positions.append(parent_pos + local_offset)
 		body_velocities.append(parent_vel + tangent)
+
+func _solve_kepler_equation(mean_anomaly: float, eccentricity: float) -> float:
+	var wrapped_mean_anomaly: float = wrapf(mean_anomaly, -PI, PI)
+	if eccentricity <= 0.0001:
+		return wrapped_mean_anomaly
+
+	var eccentric_anomaly: float = wrapped_mean_anomaly
+	for _i in range(8):
+		var f: float = eccentric_anomaly - eccentricity * sin(eccentric_anomaly) - wrapped_mean_anomaly
+		var derivative: float = 1.0 - eccentricity * cos(eccentric_anomaly)
+		if absf(derivative) <= 0.000001:
+			break
+		eccentric_anomaly -= f / derivative
+	return eccentric_anomaly
 
 func _gravity_from_body(position: Vector3, body_pos: Vector3, mu: float, min_gravity_distance: float) -> Vector3:
 	var offset: Vector3 = body_pos - position

@@ -1,0 +1,989 @@
+[gd_scene format=3 uid="uid://dwpspmlrc3det"]
+
+[ext_resource type="Script" uid="uid://uau746vwnsto" path="res://scenes/menu_controller.gd" id="1_controller"]
+[ext_resource type="Script" uid="uid://brbblurg7bpma" path="res://scenes/menu_float_motion.gd" id="2_float"]
+[ext_resource type="Material" uid="uid://ifjtihp0gsls" path="res://scenes/menuplanet.tres" id="3_4ytvr"]
+[ext_resource type="Script" uid="uid://cp6027kqdijr0" path="res://scenes/starfield.gd" id="3_starfield"]
+[ext_resource type="Material" uid="uid://blqfh6c3nmojc" path="res://scenes/shipmat.tres" id="4_13sgg"]
+[ext_resource type="Script" uid="uid://b1sryv37uldbg" path="res://ambient_loop.gd" id="4_ambient"]
+[ext_resource type="Texture2D" uid="uid://c4f865jnjif47" path="res://scenes/IBM_5155_screen.png" id="4_i6lef"]
+[ext_resource type="Material" uid="uid://dh1hxv0knaof3" path="res://scenes/metal.tres" id="4_v86rl"]
+[ext_resource type="Script" uid="uid://cyc1oiw1t4krw" path="res://scenes/menu_focus_button.gd" id="5_focus_button"]
+[ext_resource type="Script" uid="uid://crj0krfqwwent" path="res://scenes/menu_planet_haze.gd" id="6_menu_planet_haze"]
+[ext_resource type="AudioStream" uid="uid://chq028ekrqenx" path="res://scenes/Music/Basalt Loop.mp3" id="8_70i5f"]
+[ext_resource type="AudioStream" uid="uid://ow58wra0vxbm" path="res://scenes/skyscraper_seven-click-buttons-ui-menu-sounds-effects-button-7-203601.mp3" id="10_mj5lg"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0, 0, 0, 1)
+sky_horizon_color = Color(0, 0, 0, 1)
+ground_bottom_color = Color(0, 0, 0, 1)
+ground_horizon_color = Color(0, 0, 0, 1)
+sun_angle_max = 4.0
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 1
+sky = SubResource("Sky_1")
+ambient_light_source = 1
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mj5lg"]
+albedo_texture = ExtResource("4_i6lef")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ufwb2"]
+albedo_texture = ExtResource("4_i6lef")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6cdou"]
+albedo_color = Color(1, 1, 1, 0)
+albedo_texture = ExtResource("4_i6lef")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i42df"]
+albedo_texture = ExtResource("4_i6lef")
+
+[sub_resource type="SphereMesh" id="SphereMesh_planet"]
+material = ExtResource("3_4ytvr")
+radius = 42.0
+height = 84.0
+
+[node name="Menu" type="Node3D" unique_id=421248477]
+script = ExtResource("1_controller")
+subtitle_text = "v0.6.1 ALPHA"
+intro_page_text = "Play the demo version of the game. "
+how_to_play_text = "Look around: Mouse
+Interact: E"
+tutorial_page_1_title = "Burn Window"
+tutorial_page_1_text = "Burn Window is a first-person cockpit-based orbital mechanics game. You must understand your situation entirely from the [color=#95d88a]instruments[/color] and [color=#95d88a]controls[/color] inside the ship.
+
+Your main tools are the [color=#95d88a]Navigation Ball[/color] and the [color=#95d88a]Trajectory Computer[/color]. These systems give you everything you need to make decisions, but only if you learn to read them properly.
+
+Your job is to complete orbital tasks by planning, pointing the ship correctly, and making careful [color=#ffb36b]burns[/color]. Calm, deliberate inputs are usually better than fast reactions.
+
+In the following pages, you will learn how to operate the ship, read the [color=#95d88a]instruments[/color], and perform orbital maneuvers. Understanding the mechanics of orbits and how to read the [color=#95d88a]instruments[/color] are crucial to your success. Space is unforgiving and you must be deliberate."
+tutorial_page_2_title = "Operating The Ship"
+tutorial_page_2_text = "Use the six attitude buttons to rotate the ship in [color=#ffb36b]PITCH[/color], [color=#ffb36b]YAW[/color], and [color=#ffb36b]ROLL[/color]. Hold a button to build rotational speed. Releasing the button will allow the ship to gradually dampen the turn.
+
+Use [color=#ffb36b]THRUST[/color] to accelerate the ship forward along the direction you are pointing. Tap it for small corrections. Hold it for a sustained [color=#ffb36b]burn[/color].
+
+To enter [color=#95d88a]FOCUS[/color] on the window or the computer, look at it until the magnifying glass appears on the reticle, then press [color=#95d88a]interact[/color]. Press interact again to leave [color=#95d88a]FOCUS[/color].
+
+It is much easier to make a change to your trajectory than it is to undo it, so make incremental changes, and frequently check the [color=#95d88a]instruments[/color].
+
+It is important to remember that the ship has limited resources. These are explained more in-depth on page 8 of this guide."
+tutorial_page_3_title = "Using The Navigation Ball"
+tutorial_page_3_text = "The [color=#95d88a]Navigation Ball[/color] shows direction relative to your ship’s orientation.
+
+The gray [color=#d7d7d7]NOSE[/color] marker represents where the ship is pointing. Around it, directional markers describe your motion:
+
+- [color=#f0d48a]PROGRADE[/color] and [color=#f0d48a]RETROGRADE[/color] show forward and backward movement along your path
+- [color=#7fb6ff]RADIAL IN[/color] and [color=#7fb6ff]RADIAL OUT[/color] point toward and away from the central body
+- [color=#ae86ff]NORMAL[/color] and [color=#ae86ff]ANTINORMAL[/color] adjust your orbital plane
+
+Pointing at one of these markers before a [color=#ffb36b]burn[/color] determines what kind of change you make.
+
+If you are unsure what to do, start by aligning with a marker and observe how the [color=#95d88a]Trajectory Computer[/color] responds after applying [color=#ffb36b]THRUST[/color]."
+tutorial_page_4_title = "Intro To The Trajectory Computer"
+tutorial_page_4_text = "The [color=#95d88a]Trajectory Computer[/color] is your main tool for reading the ship's future path. It predicts your motion forward in time and lets you inspect that prediction from different views and around different bodies.
+
+Press [color=#95d88a]REFRESH[/color] to rebuild the prediction from your current state. After any [color=#ffb36b]burn[/color], rotation change, or other maneuver, use [color=#95d88a]REFRESH[/color] before trusting the display again. If the prediction is stale, it no longer represents your real future course.
+
+The [color=#95d88a](+)[/color] and [color=#95d88a](-)[/color] buttons change map zoom. That does not just make the picture larger or smaller. It also changes how much of the predicted path you can inspect at once.
+
+The [color=#95d88a]circle[/color] button cycles the current view center. Depending on the situation, the computer can center the display on the [color=#95d88a]planet[/color], a focused child body such as a [color=#95d88a]moon[/color], or the [color=#95d88a]ship[/color]. This matters because the same path can look very different depending on what body you are reading it against.
+
+The [color=#95d88a]arrows[/color] button switches between [color=#95d88a]PLAN[/color] mode and [color=#95d88a]EQUATOR[/color] mode. [color=#95d88a]PLAN[/color] is for reading orbit shape, encounters, and hazards. [color=#95d88a]EQUATOR[/color] is for reading orbital plane alignment and node crossings such as [color=#95d88a]AN[/color] and [color=#95d88a]DN[/color].
+
+The computer can also detect [color=#ff8d8d]impact[/color] trajectories and mark them on the display. If you see an impact marker or hear the warning, assume your current course is not survivable without correction.
+
+You can also enter [color=#f58aa8]TIME WARP[/color] from this screen to move forward to a chosen point on the predicted path, but only after the prediction is current and trustworthy."
+tutorial_page_5_title = "PLAN Mode"
+tutorial_page_5_text = "[color=#95d88a]PLAN[/color] mode shows your predicted path in orbital space around the current reference body. Use it when you want to understand what orbit you are actually on, what orbit you are heading toward, and whether a maneuver improved or damaged the situation.
+
+This view reports your current [color=#ffb36b]velocity[/color] and [color=#ffb36b]altitude[/color], plus [color=#ae86ff]inclination[/color] relative to the targeted body's orbital plane. It also solves for key orbit values such as [color=#f0d48a]PE[/color], [color=#f0d48a]AP[/color], eccentricity, semi-major axis, and orbital period. In other words, this is the screen that tells you the overall shape and type of orbit you are dealing with.
+
+The computer also tracks closest approaches. It can show encounter information for the current reference body and for a focused child body, including closest approach distance, time to closest approach, and relative speed at encounter. If you are trying to intercept, transfer, enter another body's sphere of influence, or judge whether an approach is safe, this is the first place to check.
+
+Your [color=#f0d48a]PROGRADE[/color] and [color=#d7d7d7]NOSE[/color] vectors are drawn directly on the display. This lets you compare where the ship is moving to where it is pointed before committing to a [color=#ffb36b]burn[/color].
+
+[color=#95d88a]PLAN[/color] mode can also reveal danger. If the predicted path ends in an [color=#ff8d8d]impact[/color] trajectory, the computer marks it and can trigger a warning. If you see an impact marker, treat it as immediate evidence that your current path is not survivable unless corrected.
+
+After any maneuver, press [color=#95d88a]REFRESH[/color] to rebuild the prediction. If the prediction is stale, the path on screen is no longer trustworthy. For orbit shaping, interception, encounter planning, and impact avoidance, [color=#95d88a]PLAN[/color] mode is usually the first screen to trust."
+tutorial_page_6_title = "EQUATOR Mode"
+tutorial_page_6_text = "[color=#95d88a]EQUATOR[/color] mode is the plane-alignment view. Use it when the problem is not orbit size, but orbit tilt relative to the current reference body.
+
+Instead of showing the full orbital path, this screen compares your motion to the reference body's equatorial plane. It draws that plane, your own orbital plane, and the angle between them. That angle is your [color=#ae86ff]inclination[/color].
+
+This mode highlights the node crossings. The center marker shows the active node you are approaching: [color=#95d88a]AN[/color] for ascending node or [color=#95d88a]DN[/color] for descending node. The status text at the bottom also tells you whether you are currently [color=#95d88a]ASCENDING[/color], [color=#95d88a]DESCENDING[/color], or effectively [color=#95d88a]FLAT[/color].
+
+If your goal is to reduce [color=#ae86ff]inclination[/color], perform the correction at a node. That is where plane changes are most effective. Use [color=#ae86ff]NORMAL[/color] and [color=#ae86ff]ANTINORMAL[/color] to tilt the orbit.
+
+As a rule of thumb, burn [color=#ae86ff]NORMAL[/color] while descending and [color=#ae86ff]ANTINORMAL[/color] while ascending when you are trying to bring the inclination error down. After the maneuver, return to the computer and check whether the angle actually decreased.
+
+Pay attention to the reference label. The body used as the plane reference can change depending on what the map is centered on, so always confirm which body's equator you are aligning to before making the [color=#ffb36b]burn[/color]."
+tutorial_page_7_title = "Time Warp"
+tutorial_page_7_text = "[color=#f58aa8]TIME WARP[/color] lets you skip ahead to a selected point on the predicted course. It is best used when you already know what point in the orbit you want to reach.
+
+While focused on the [color=#95d88a]Trajectory Computer[/color], press [color=#f58aa8]T[/color] to enter time warp selection. A target point will appear on the path.
+
+Use [color=#f58aa8][[/color] and [color=#f58aa8]][/color] to step backward or forward along the trajectory. Hold [color=#f58aa8]Shift[/color] with them to move in larger jumps.
+
+Press [color=#95d88a]Enter[/color] to begin the warp. Press [color=#ff8d8d]Escape[/color] to cancel."
+tutorial_page_8_title = "Resources"
+tutorial_page_8_text = "[color=#ffb36b]Fuel[/color] and [color=#95d88a]Oxygen[/color] are your survival resources. [color=#ffb36b]Fuel[/color] limits how much maneuvering freedom you still have. [color=#95d88a]Oxygen[/color] limits how long you can remain alive in the ship.
+
+Inefficient [color=#ffb36b]burns[/color] cost more [color=#ffb36b]Fuel[/color]. Long waits still consume [color=#95d88a]Oxygen[/color]. That means waste hurts you in more than one way.
+
+Check the tank gauges on the right side of the cockpit. If a gauge looks nearly empty, assume you are close to trouble even if a small reserve still remains."
+tutorial_page_9_title = "Basic Orbital Operations"
+tutorial_page_9_text = "Most orbital operations follow the same loop: read the situation, point the ship, apply [color=#ffb36b]THRUST[/color], then check the result on the [color=#95d88a]instruments[/color].
+
+[color=#f0d48a]AP[/color], or [color=#f0d48a]apoapsis[/color], is the highest point of the orbit. [color=#f0d48a]PE[/color], or [color=#f0d48a]periapsis[/color], is the lowest. Burns made at one of these points usually affect the opposite side of the orbit the most.
+
+A [color=#f0d48a]PROGRADE[/color] burn at [color=#f0d48a]PE[/color] usually raises [color=#f0d48a]AP[/color]. A [color=#f0d48a]RETROGRADE[/color] burn at [color=#f0d48a]PE[/color] usually lowers [color=#f0d48a]AP[/color].
+
+A [color=#f0d48a]PROGRADE[/color] burn at [color=#f0d48a]AP[/color] usually raises [color=#f0d48a]PE[/color]. A [color=#f0d48a]RETROGRADE[/color] burn at [color=#f0d48a]AP[/color] usually lowers [color=#f0d48a]PE[/color].
+
+Use [color=#ae86ff]NORMAL[/color] and [color=#ae86ff]ANTINORMAL[/color] at a node when you want to change orbital plane. After any maneuver, hit [color=#95d88a]REFRESH[/color] and see what actually changed.
+"
+tutorial_page_10_title = "Reading Your Situation"
+tutorial_page_10_text = "Do not rely on instinct alone. If you feel lost, stop changing things and check the [color=#95d88a]Navigation Ball[/color] and the [color=#95d88a]Trajectory Computer[/color].
+
+Ask yourself three questions. Where am I going now. Where do I want to go. What [color=#ffb36b]burn[/color] direction would move me toward that result.
+
+Most mistakes happen because one of those questions was skipped. The cockpit is cramped, but the [color=#95d88a]instruments[/color] are how you survive inside it.
+
+If the situation is unclear, do not guess. Use [color=#95d88a]REFRESH[/color], re-evaluate the trajectory, and make a deliberate decision before acting."
+tutorial_page_11_title = "General Advice"
+tutorial_page_11_text = "Make small [color=#ffb36b]burns[/color]. Use [color=#95d88a]REFRESH[/color] often. When things begin to drift, slowing down and reassessing is usually better than reacting quickly.
+
+Watch for compounding errors. A bad orientation, followed by a long [color=#ffb36b]burn[/color], followed by another rushed correction can ruin a workable orbit fast.
+
+You are not flying by sight. You are flying by interpretation. Learn the [color=#95d88a]instruments[/color], trust the data, and the ship will start to make sense.
+
+Good control comes from consistency. Small, deliberate changes will always outperform large, uncertain ones."
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1317201615]
+environment = SubResource("Environment_1")
+
+[node name="CameraRig" type="Node3D" parent="." unique_id=816651559]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 1.1, 8)
+script = ExtResource("2_float")
+bob_axis = Vector3(0.2, 1, 0)
+bob_distance = 0.22
+bob_cycles_per_second = 0.018
+rotation_sway_degrees = Vector3(0.25, 0.55, 0.12)
+rotation_sway_cycles_per_second = Vector3(0.02, 0.03, 0.015)
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig" unique_id=460488931]
+fov = 34.0
+
+[node name="PresentationRig" type="Node3D" parent="." unique_id=1982285198]
+transform = Transform3D(0.99939084, -0.034899496, 0, 0.034766693, 0.9955878, 0.087155744, -0.0030416914, -0.08710265, 0.9961947, 0, -0.2, -18)
+script = ExtResource("2_float")
+bob_axis = Vector3(0, 1, 0.08)
+bob_distance = 0.35
+bob_cycles_per_second = 0.03
+rotation_sway_degrees = Vector3(0.5, 1, 0.25)
+rotation_sway_cycles_per_second = Vector3(0.018, 0.025, 0.014)
+phase_offset_seconds = 2.4
+
+[node name="BackgroundAnchor" type="Node3D" parent="PresentationRig" unique_id=2021573354]
+
+[node name="Ship" type="Node3D" parent="PresentationRig/BackgroundAnchor" unique_id=1399060069]
+transform = Transform3D(-0.6208023, -0.39402667, 0.6777535, 0.70140475, 0.107018225, 0.7046834, -0.35019532, 0.9128487, 0.20993496, -4.1262527, 0.95135057, 0.30662727)
+
+[node name="Cockpit" type="Node3D" parent="PresentationRig/BackgroundAnchor/Ship" unique_id=1844048535]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14467442, 0, 0)
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit" unique_id=1982405216]
+transform = Transform3D(-0.056806967, 0.9420403, 0.33065933, -0.9974847, -0.0676064, 0.021240495, 0.04236385, -0.32862276, 0.9435107, -0.1285038, 0.88234544, -2.148971)
+layers = 3
+use_collision = true
+radius = 2.5
+height = 9.0
+sides = 24
+material = SubResource("StandardMaterial3D_mj5lg")
+
+[node name="Fairing1" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D" unique_id=1523674937]
+transform = Transform3D(-4.3709733e-08, 3.8144907e-10, 1.0000002, 0.008726537, 0.99996215, 0, -0.99996215, 0.008726537, -4.37114e-08, 2.5, 4.232, 0)
+layers = 3
+radius = 1.011
+sides = 10
+material = ExtResource("4_13sgg")
+
+[node name="Tip" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing1" unique_id=1211633709]
+transform = Transform3D(-0.9999619, -0.008726447, 7.1054274e-15, 0.008726447, -0.9999619, -2.220446e-16, 0, 2.6865725e-16, 1, -0.017030716, -1.951376, 0)
+layers = 3
+radius = 1.011
+sides = 10
+cone = true
+material = ExtResource("4_13sgg")
+
+[node name="Neck" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing1/Tip" unique_id=1864931872]
+transform = Transform3D(1, 2.1316282e-14, 0, -2.1316282e-14, 1, -6.697282e-16, -1.0658141e-14, 2.7396772e-16, 1, 0, -2.929222, 0)
+layers = 3
+radius = 0.75
+height = 0.264
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing1/Tip/Neck" unique_id=727525579]
+layers = 3
+radius = 0.848
+height = 2.604
+cone = true
+material = ExtResource("4_v86rl")
+
+[node name="Fairing2" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D" unique_id=1887431887]
+transform = Transform3D(-4.3709733e-08, 3.8144907e-10, 1.0000002, 0.008726537, 0.99996215, 0, -0.99996215, 0.008726537, -4.37114e-08, -2.5, 4.232, 0)
+layers = 3
+radius = 1.011
+sides = 10
+material = ExtResource("4_13sgg")
+
+[node name="Tip" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing2" unique_id=842090911]
+transform = Transform3D(-0.9999619, -0.008726447, 7.1054274e-15, 0.008726447, -0.9999619, -2.220446e-16, 0, 2.6865725e-16, 1, -0.017030716, -1.951376, 0)
+layers = 3
+radius = 1.011
+sides = 10
+cone = true
+material = ExtResource("4_13sgg")
+
+[node name="Neck" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing2/Tip" unique_id=675349966]
+transform = Transform3D(1, 2.1316282e-14, 0, -2.1316282e-14, 1, -6.697282e-16, -1.0658141e-14, 2.7396772e-16, 1, 0, -2.929222, 0)
+layers = 3
+radius = 0.75
+height = 0.264
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing2/Tip/Neck" unique_id=2001776012]
+layers = 3
+radius = 0.848
+height = 2.604
+cone = true
+material = ExtResource("4_v86rl")
+
+[node name="Fairing3" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D" unique_id=1055233178]
+transform = Transform3D(-4.3709733e-08, 3.8144907e-10, 1.0000002, 0.008726537, 0.99996215, 0, -0.99996215, 0.008726537, -4.37114e-08, 0, 4.232, 2.5)
+layers = 3
+radius = 1.011
+sides = 10
+material = ExtResource("4_13sgg")
+
+[node name="Tip" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing3" unique_id=1404730051]
+transform = Transform3D(-0.9999619, -0.008726447, 7.1054274e-15, 0.008726447, -0.9999619, -2.220446e-16, 0, 2.6865725e-16, 1, -0.017030716, -1.951376, 0)
+layers = 3
+radius = 1.011
+sides = 10
+cone = true
+material = ExtResource("4_13sgg")
+
+[node name="Neck" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing3/Tip" unique_id=1272382206]
+transform = Transform3D(1, 2.1316282e-14, 0, -2.1316282e-14, 1, -6.697282e-16, -1.0658141e-14, 2.7396772e-16, 1, 0, -2.929222, 0)
+layers = 3
+radius = 0.75
+height = 0.264
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing3/Tip/Neck" unique_id=1518031239]
+layers = 3
+radius = 0.848
+height = 2.604
+cone = true
+material = ExtResource("4_v86rl")
+
+[node name="Fairing4" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D" unique_id=436508372]
+transform = Transform3D(-4.3709733e-08, 3.8144907e-10, 1.0000002, 0.008726537, 0.99996215, 0, -0.99996215, 0.008726537, -4.37114e-08, 0, 4.232, -2.5)
+layers = 3
+radius = 1.011
+sides = 10
+material = ExtResource("4_13sgg")
+
+[node name="Tip" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing4" unique_id=625297387]
+transform = Transform3D(-0.9999619, -0.008726447, 7.1054274e-15, 0.008726447, -0.9999619, -2.220446e-16, 0, 2.6865725e-16, 1, -0.017030716, -1.951376, 0)
+layers = 3
+radius = 1.011
+sides = 10
+cone = true
+material = ExtResource("4_13sgg")
+
+[node name="Neck" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing4/Tip" unique_id=1136636065]
+transform = Transform3D(1, 2.1316282e-14, 0, -2.1316282e-14, 1, -6.697282e-16, -1.0658141e-14, 2.7396772e-16, 1, 0, -2.929222, 0)
+layers = 3
+radius = 0.75
+height = 0.264
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Fairing4/Tip/Neck" unique_id=1942537458]
+layers = 3
+radius = 0.848
+height = 2.604
+cone = true
+material = ExtResource("4_v86rl")
+
+[node name="Neck" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D" unique_id=738805400]
+transform = Transform3D(2, 4.2632564e-14, 2.1316282e-14, -4.2632564e-14, 2, -5.4793545e-16, -2.1316282e-14, 5.4793545e-16, 2, 0, 4.5638814, 0)
+layers = 3
+radius = 0.75
+height = 0.264
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Neck" unique_id=1120117721]
+transform = Transform3D(-1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 0, 0, 1, 0, 0, 0)
+layers = 3
+radius = 0.848
+height = 2.604
+cone = true
+material = ExtResource("4_v86rl")
+
+[node name="Nose" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D" unique_id=1680085637]
+transform = Transform3D(-0.99999905, 8.742294e-08, 3.4416914e-15, -8.74227e-08, -1.0000019, 1.4901161e-08, 3.0198066e-14, -2.2351742e-08, 1.0000006, 0.013687611, -5.4707556, -0.0017385483)
+radius = 2.5
+height = 1.832
+sides = 24
+cone = true
+material = ExtResource("4_13sgg")
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Nose" unique_id=608843110]
+transform = Transform3D(1.3113427e-07, -8.742286e-09, -4.000004, -2.9802322e-08, -0.09999981, 3.4969048e-07, -2.999998, -2.7939677e-09, -1.7484535e-07, 0.013687611, -0.9966383, 0.69829345)
+layers = 3
+operation = 2
+height = 56.658
+sides = 24
+material = SubResource("StandardMaterial3D_ufwb2")
+
+[node name="CSGBox3D" type="CSGBox3D" parent="PresentationRig/BackgroundAnchor/Ship/Cockpit/CSGCylinder3D/Nose/CSGCylinder3D" unique_id=2095883674]
+transform = Transform3D(0.9999992, 2.3283064e-10, -2.0525803e-12, -1.50203705e-05, 0.9999998, -1.546141e-11, 2.4913405e-13, -1.2975732e-15, 0.9999998, 0.49999988, -13.523254, 0)
+layers = 3
+material_override = SubResource("StandardMaterial3D_6cdou")
+operation = 2
+flip_faces = true
+size = Vector3(1, 29.645508, 1)
+material = SubResource("StandardMaterial3D_i42df")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="PresentationRig/BackgroundAnchor/Ship" unique_id=223240564]
+transform = Transform3D(0.99999976, -2.682209e-07, 9.536743e-07, 0, 0.9999987, -2.9802322e-08, 1.0430813e-07, 5.9604645e-08, 0.9999997, -9.664499, 14.885063, -4.203946)
+layers = 2
+light_size = 1.0
+distance_fade_length = 1827.43
+omni_range = 36.324
+omni_attenuation = 0.994
+
+[node name="DistantPlanet" type="Node3D" parent="." unique_id=313994257]
+transform = Transform3D(1.18, 0, 0, 0, 1.18, 0, 0, 0, 1.18, -36, 8, -190)
+script = ExtResource("6_menu_planet_haze")
+
+[node name="PlanetMesh" type="MeshInstance3D" parent="DistantPlanet" unique_id=1971584099]
+mesh = SubResource("SphereMesh_planet")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=726044802]
+transform = Transform3D(-0.15643448, 0.69427204, -0.70287496, 0, 0.7116301, 0.70255435, 0.98768836, 0.10990564, -0.111165434, 0, 0, 0)
+light_color = Color(0.99215686, 0.92156863, 0.8392157, 1)
+light_energy = 1.25
+
+[node name="Starfield" type="Node3D" parent="." unique_id=1564605114]
+script = ExtResource("3_starfield")
+star_count = 900
+radius = 1000.0
+min_scale = 1.25
+max_scale = 3.5
+target_path = NodePath("../CameraRig")
+
+[node name="MultiMeshInstance3D" type="MultiMeshInstance3D" parent="Starfield" unique_id=798855398]
+
+[node name="MenuAmbientPlayer" type="AudioStreamPlayer" parent="." unique_id=1182379555]
+stream = ExtResource("8_70i5f")
+volume_db = 6.341
+script = ExtResource("4_ambient")
+target_volume_db = -8.775
+
+[node name="MenuButtonPlayer" type="AudioStreamPlayer" parent="." unique_id=1824131058]
+stream = ExtResource("10_mj5lg")
+volume_db = 10.146
+pitch_scale = 0.64
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=246646973]
+
+[node name="UIRoot" type="Control" parent="CanvasLayer" unique_id=1772623464]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MenuShell" type="Control" parent="CanvasLayer/UIRoot" unique_id=274258]
+anchors_preset = 0
+offset_left = 1232.0
+offset_top = 110.0
+offset_right = 1756.0
+offset_bottom = 888.0
+pivot_offset = Vector2(262, 389)
+
+[node name="PanelBackdrop" type="ColorRect" parent="CanvasLayer/UIRoot/MenuShell" unique_id=1852318272]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03529412, 0.05490196, 0.078431375, 0.78)
+
+[node name="MenuMargin" type="MarginContainer" parent="CanvasLayer/UIRoot/MenuShell" unique_id=35836260]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 38
+theme_override_constants/margin_top = 34
+theme_override_constants/margin_right = 38
+theme_override_constants/margin_bottom = 34
+
+[node name="MenuVBox" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin" unique_id=668443972]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox" unique_id=1146284396]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9529412, 0.9490196, 0.9372549, 1)
+theme_override_font_sizes/font_size = 48
+text = "Burn Window"
+
+[node name="SubtitleLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox" unique_id=24893014]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 18
+text = "Unforgiving orbital mechanic puzzle game"
+
+[node name="MenuColumns" type="HBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox" unique_id=969216956]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 26
+
+[node name="ButtonColumn" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns" unique_id=1964734472]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="StartButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=176593778]
+custom_minimum_size = Vector2(240, 58)
+layout_mode = 2
+text = "Start"
+script = ExtResource("5_focus_button")
+
+[node name="HowToPlayButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=332772688]
+custom_minimum_size = Vector2(240, 58)
+layout_mode = 2
+text = "How To Play"
+script = ExtResource("5_focus_button")
+
+[node name="SettingsButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=765401449]
+custom_minimum_size = Vector2(240, 58)
+layout_mode = 2
+text = "Settings"
+script = ExtResource("5_focus_button")
+
+[node name="CreditsButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=909503892]
+custom_minimum_size = Vector2(240, 58)
+layout_mode = 2
+text = "Credits"
+script = ExtResource("5_focus_button")
+
+[node name="QuitButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/ButtonColumn" unique_id=567737394]
+custom_minimum_size = Vector2(240, 58)
+layout_mode = 2
+text = "Quit"
+script = ExtResource("5_focus_button")
+
+[node name="Divider" type="ColorRect" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns" unique_id=811246896]
+custom_minimum_size = Vector2(2, 0)
+layout_mode = 2
+size_flags_vertical = 3
+color = Color(0.32156864, 0.45490196, 0.54509807, 0.75)
+
+[node name="DetailsColumn" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns" unique_id=1003731558]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="DetailsTitleLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn" unique_id=964550076]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="DetailsBodyLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn" unique_id=1115431841]
+custom_minimum_size = Vector2(0, 472)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85490197, 0.8784314, 0.9019608, 1)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="StartOptionsPanel" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn" unique_id=168611482]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="StartOptionsLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/StartOptionsPanel" unique_id=1474065718]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 16
+text = "Select Difficulty"
+
+[node name="StartOptionsColumn" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/StartOptionsPanel" unique_id=1247948699]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="EasyDifficultyButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/StartOptionsPanel/StartOptionsColumn" unique_id=1123765145]
+custom_minimum_size = Vector2(200, 42)
+layout_mode = 2
+toggle_mode = true
+text = "Easy"
+script = ExtResource("5_focus_button")
+
+[node name="NormalDifficultyButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/StartOptionsPanel/StartOptionsColumn" unique_id=1702641783]
+custom_minimum_size = Vector2(200, 42)
+layout_mode = 2
+toggle_mode = true
+text = "Normal"
+script = ExtResource("5_focus_button")
+
+[node name="HardDifficultyButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/StartOptionsPanel/StartOptionsColumn" unique_id=315575930]
+custom_minimum_size = Vector2(200, 42)
+layout_mode = 2
+toggle_mode = true
+text = "Hard"
+script = ExtResource("5_focus_button")
+
+[node name="LockedDifficultyButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/StartOptionsPanel/StartOptionsColumn" unique_id=2065955802]
+custom_minimum_size = Vector2(200, 42)
+layout_mode = 2
+disabled = true
+text = "LOCKED"
+script = ExtResource("5_focus_button")
+
+[node name="HowToPlayBook" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn" unique_id=370102117]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="PageTitleLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/HowToPlayBook" unique_id=868581441]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 22
+text = "Page 1"
+
+[node name="PageBodyLabel" type="RichTextLabel" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/HowToPlayBook" unique_id=57779454]
+custom_minimum_size = Vector2(0, 472)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "Replace this with the first page of your tutorial book."
+context_menu_enabled = true
+shortcut_keys_enabled = false
+
+[node name="PageNavRow" type="HBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/HowToPlayBook" unique_id=1581175356]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PreviousPageButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/HowToPlayBook/PageNavRow" unique_id=2095386777]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Previous"
+script = ExtResource("5_focus_button")
+
+[node name="PageIndicatorLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/HowToPlayBook/PageNavRow" unique_id=764958807]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 17
+text = "1 / 3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NextPageButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/HowToPlayBook/PageNavRow" unique_id=527645915]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Next"
+script = ExtResource("5_focus_button")
+
+[node name="SettingsPanel" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn" unique_id=1032708899]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="SettingsIntroLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel" unique_id=1218655231]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 17
+text = "Adjust your settings."
+autowrap_mode = 3
+
+[node name="SettingsScroll" type="ScrollContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel" unique_id=1296698525]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+follow_focus = true
+
+[node name="SettingsScrollContent" type="VBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll" unique_id=1601559235]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="VideoHeader" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=7276234]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Video"
+
+[node name="VideoGrid" type="GridContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=1627173396]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="FullscreenLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=217764691]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Fullscreen"
+
+[node name="FullscreenToggle" type="CheckButton" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=1041127065]
+layout_mode = 2
+
+[node name="FullscreenValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=510669552]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+
+[node name="ResolutionLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=1826152553]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Resolution"
+
+[node name="ResolutionOptionButton" type="OptionButton" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=686963091]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
+[node name="ResolutionValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=1988429680]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "1920 x 1080"
+
+[node name="CameraFovLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=245309967]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Camera FOV"
+
+[node name="CameraFovSlider" type="HSlider" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=2129795328]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+min_value = 55.0
+max_value = 95.0
+value = 75.0
+
+[node name="CameraFovValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=1711070605]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "75"
+
+[node name="PlanetEffectsLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=1940664350]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Planet Effects"
+
+[node name="PlanetEffectsToggle" type="CheckButton" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=1666681858]
+layout_mode = 2
+
+[node name="PlanetEffectsValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/VideoGrid" unique_id=368337597]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+
+[node name="ControlsHeader" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=1028808959]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Controls"
+
+[node name="ControlsGrid" type="GridContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=849290706]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="MouseSensitivityLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=1897773672]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Mouse Sensitivity"
+
+[node name="MouseSensitivitySlider" type="HSlider" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=1735918492]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+min_value = 1.0
+value = 50.0
+
+[node name="MouseSensitivityValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=236456565]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "50"
+
+[node name="InvertYLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=277257217]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Invert Y Look"
+
+[node name="InvertYToggle" type="CheckButton" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=1417225612]
+layout_mode = 2
+
+[node name="InvertYValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=504265152]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "Off"
+
+[node name="MouseSmoothingLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=11439851]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Mouse Smoothing"
+
+[node name="MouseSmoothingToggle" type="CheckButton" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=1276961563]
+layout_mode = 2
+button_pressed = true
+
+[node name="MouseSmoothingValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/ControlsGrid" unique_id=1852870479]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+
+[node name="MouseSmoothingDetailMargin" type="MarginContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=944285997]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+
+[node name="MouseSmoothingDetailGrid" type="GridContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin" unique_id=824305557]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="MouseSmoothingAmountLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin/MouseSmoothingDetailGrid" unique_id=1610960451]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Smoothing Level"
+
+[node name="MouseSmoothingSlider" type="HSlider" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin/MouseSmoothingDetailGrid" unique_id=925307189]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+min_value = 1.0
+value = 50.0
+
+[node name="MouseSmoothingValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin/MouseSmoothingDetailGrid" unique_id=1412166891]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "50"
+
+[node name="GameplayHeader" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=1230444356]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Gameplay"
+
+[node name="GameplayGrid" type="GridContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=1760654580]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="CameraShakeLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid" unique_id=888165882]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Camera Shake"
+
+[node name="CameraShakeToggle" type="CheckButton" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid" unique_id=505846425]
+layout_mode = 2
+
+[node name="CameraShakeValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid" unique_id=468742695]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "On"
+
+[node name="AudioHeader" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=2105029847]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 18
+text = "Audio"
+
+[node name="AudioGrid" type="GridContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=680269433]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 12
+columns = 3
+
+[node name="EngineVolumeLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=1938437841]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Engine Volume"
+
+[node name="EngineVolumeSlider" type="HSlider" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=319003134]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+max_value = 1.5
+step = 0.01
+value = 1.0
+
+[node name="EngineVolumeValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=514804713]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "100%"
+
+[node name="AmbientVolumeLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=1908193752]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Ambient Volume"
+
+[node name="AmbientVolumeSlider" type="HSlider" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=1981949442]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+max_value = 1.5
+step = 0.01
+value = 1.0
+
+[node name="AmbientVolumeValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=709595039]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "100%"
+
+[node name="UiVolumeLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=370469021]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "UI Volume"
+
+[node name="UiVolumeSlider" type="HSlider" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=621386832]
+custom_minimum_size = Vector2(135, 0)
+layout_mode = 2
+max_value = 1.5
+step = 0.01
+value = 1.0
+
+[node name="UiVolumeValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid" unique_id=1261475074]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "100%"
+
+[node name="SettingsButtonRow" type="HBoxContainer" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel" unique_id=194817320]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 2
+
+[node name="ResetSettingsButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsButtonRow" unique_id=792056419]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Reset"
+script = ExtResource("5_focus_button")
+
+[node name="ApplySettingsButton" type="Button" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsButtonRow" unique_id=707215253]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+disabled = true
+text = "Apply"
+script = ExtResource("5_focus_button")
+
+[node name="FooterLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox" unique_id=2117008599]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65882355, 0.7254902, 0.78039217, 1)
+theme_override_font_sizes/font_size = 15
+text = "WARNING: Game still under development, you may encounter bugs when playing."
+autowrap_mode = 3
+
+[node name="LoadingOverlay" type="ColorRect" parent="CanvasLayer/UIRoot" unique_id=1793438485]
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+
+[node name="SettingsPromptOverlay" type="ColorRect" parent="CanvasLayer/UIRoot" unique_id=188008402]
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.76)
+
+[node name="SettingsPromptPanel" type="PanelContainer" parent="CanvasLayer/UIRoot/SettingsPromptOverlay" unique_id=165217014]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -110.0
+offset_right = 240.0
+offset_bottom = 110.0
+
+[node name="SettingsPromptMargin" type="MarginContainer" parent="CanvasLayer/UIRoot/SettingsPromptOverlay/SettingsPromptPanel" unique_id=1950831531]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 22
+
+[node name="SettingsPromptVBox" type="VBoxContainer" parent="CanvasLayer/UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin" unique_id=1513755824]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SettingsPromptTitle" type="Label" parent="CanvasLayer/UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox" unique_id=1836344117]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+theme_override_font_sizes/font_size = 22
+text = "Unapplied Settings"
+
+[node name="SettingsPromptBody" type="Label" parent="CanvasLayer/UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox" unique_id=1853603336]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7137255, 0.78039217, 0.8235294, 1)
+theme_override_font_sizes/font_size = 17
+text = "You have unapplied changes. Choose Apply to keep them or Discard to leave Settings without them."
+autowrap_mode = 3
+
+[node name="SettingsPromptButtonRow" type="HBoxContainer" parent="CanvasLayer/UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox" unique_id=1075574675]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 2
+
+[node name="SettingsPromptDiscardButton" type="Button" parent="CanvasLayer/UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox/SettingsPromptButtonRow" unique_id=538588556]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Discard"
+script = ExtResource("5_focus_button")
+
+[node name="SettingsPromptApplyButton" type="Button" parent="CanvasLayer/UIRoot/SettingsPromptOverlay/SettingsPromptPanel/SettingsPromptMargin/SettingsPromptVBox/SettingsPromptButtonRow" unique_id=2025860557]
+custom_minimum_size = Vector2(140, 48)
+layout_mode = 2
+text = "Apply"
+script = ExtResource("5_focus_button")
+
+[node name="LoadingLabel" type="Label" parent="CanvasLayer/UIRoot" unique_id=2110092190]
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = -24.0
+offset_right = 120.0
+offset_bottom = 24.0
+theme_override_colors/font_color = Color(0.9843137, 0.9529412, 0.8235294, 1)
+theme_override_font_sizes/font_size = 24
+text = "Loading..."
+horizontal_alignment = 1
