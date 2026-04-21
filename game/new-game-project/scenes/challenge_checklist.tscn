@@ -6,7 +6,7 @@
 layer = 3
 script = ExtResource("1_checklist")
 
-[node name="RootMargin" type="MarginContainer" parent="."]
+[node name="RootMargin" type="Control" parent="."]
 anchors_preset = 3
 anchor_top = 1.0
 anchor_right = 0.0
@@ -51,3 +51,33 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 12
+
+[node name="TabHandle" type="PanelContainer" parent="RootMargin"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.0
+anchor_right = 0.5
+anchor_bottom = 0.0
+offset_left = -38.0
+offset_top = -28.0
+offset_right = 38.0
+offset_bottom = 0.0
+mouse_filter = 0
+z_index = 1
+
+[node name="Label" type="Label" parent="RootMargin/TabHandle"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -14.0
+offset_top = -9.0
+offset_right = 14.0
+offset_bottom = 9.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "TAB"
+horizontal_alignment = 1
+vertical_alignment = 1

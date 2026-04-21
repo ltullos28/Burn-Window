@@ -48,7 +48,7 @@ height = 84.0
 
 [node name="Menu" type="Node3D" unique_id=421248477]
 script = ExtResource("1_controller")
-subtitle_text = "v0.6.1 ALPHA"
+subtitle_text = "v0.6.5 ALPHA"
 intro_page_text = "Play the demo version of the game. "
 how_to_play_text = "Look around: Mouse
 Interact: E"
@@ -371,7 +371,7 @@ script = ExtResource("6_menu_planet_haze")
 mesh = SubResource("SphereMesh_planet")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=726044802]
-transform = Transform3D(-0.15643448, 0.69427204, -0.70287496, 0, 0.7116301, 0.70255435, 0.98768836, 0.10990564, -0.111165434, 0, 0, 0)
+transform = Transform3D(-0.15643445, 0.6940863, -0.70268947, 0, 0.71144855, 0.70273817, 0.98768836, 0.10993245, -0.11129506, 0, 0, 0)
 light_color = Color(0.99215686, 0.92156863, 0.8392157, 1)
 light_energy = 1.25
 
@@ -810,6 +810,19 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
 text = "On"
+
+[node name="LockToVectorLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid" unique_id=1338801772]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Lock To Vector"
+
+[node name="LockToVectorToggle" type="CheckButton" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid" unique_id=1914583549]
+layout_mode = 2
+
+[node name="LockToVectorValueLabel" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid" unique_id=1471938256]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "Off"
 
 [node name="AudioHeader" type="Label" parent="CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent" unique_id=2105029847]
 layout_mode = 2

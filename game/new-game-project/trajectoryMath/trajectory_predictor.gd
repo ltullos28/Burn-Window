@@ -120,10 +120,13 @@ func _evaluate_body_states_for_time(
 			sqrt_term * cos_e * speed_scale
 		)
 
-		var orbit_basis := Basis.IDENTITY
-		orbit_basis = orbit_basis.rotated(Vector3.UP, ascending_node_radians)
-		orbit_basis = orbit_basis.rotated(Vector3.RIGHT, inclination_radians)
-		orbit_basis = orbit_basis.rotated(Vector3.UP, argument_of_periapsis_radians)
+		# Keep predictor body motion aligned with SimulationState's runtime orbit
+		# convention so projected child ghost paths match live child-body positions.
+		var orbit_basis: Basis = SimulationState.build_orbit_basis_from_elements(
+			ascending_node_radians,
+			inclination_radians,
+			argument_of_periapsis_radians
+		)
 
 		var local_offset: Vector3 = orbit_basis * perifocal_position
 		var tangent: Vector3 = orbit_basis * perifocal_velocity
@@ -297,19 +300,19 @@ func _find_local_chunk_end(ship_points: Array[Vector3], start_index: int) -> int
 
 	return max_end
 
-func compute(
+func create_prediction_job(
 	ship_pos: Vector3,
 	ship_vel: Vector3,
 	sim_time: float,
 	prediction_step_seconds: float,
 	prediction_steps: int,
-	_extrema_window_radius: int,
-	_radial_extrema_tolerance: float
+	extrema_window_radius: int,
+	radial_extrema_tolerance: float
 ) -> Dictionary:
+	var compiled_bodies: Array[Dictionary] = _compile_bodies()
 	var ship_points: Array[Vector3] = []
 	var ship_velocities: Array[Vector3] = []
 	var planet_radii: Array[float] = []
-	var compiled_bodies: Array[Dictionary] = _compile_bodies()
 	var body_positions: Array[Vector3] = []
 	var body_velocities: Array[Vector3] = []
 	var planet_body_index: int = _find_compiled_body_index(compiled_bodies, &"planet")
@@ -326,7 +329,6 @@ func compute(
 		var parent_index: int = body.get("parent_index", -1)
 		if parent_index < 0 or parent_index >= compiled_bodies.size():
 			continue
-
 		var body_name: StringName = body.get("name", &"")
 		var parent_body_name: StringName = compiled_bodies[parent_index].get("name", &"")
 		child_body_infos.append({
@@ -342,107 +344,197 @@ func compute(
 		child_best_relative_speeds.append(-1.0)
 		child_best_indices.append(-1)
 
-	var test_pos: Vector3 = ship_pos
-	var test_vel: Vector3 = ship_vel
-	var test_time: float = sim_time
+	var initial_rel_ship_planet: Vector3 = ship_pos - SimulationState.planet_pos
+	return {
+		"prediction_step_seconds": prediction_step_seconds,
+		"prediction_steps": max(prediction_steps, 0),
+		"extrema_window_radius": extrema_window_radius,
+		"radial_extrema_tolerance": radial_extrema_tolerance,
+		"compiled_bodies": compiled_bodies,
+		"planet_body_index": planet_body_index,
+		"child_body_infos": child_body_infos,
+		"child_relative_points": child_relative_points,
+		"child_dominance_masks": child_dominance_masks,
+		"child_best_distances": child_best_distances,
+		"child_best_times": child_best_times,
+		"child_best_relative_speeds": child_best_relative_speeds,
+		"child_best_indices": child_best_indices,
+		"ship_points": ship_points,
+		"ship_velocities": ship_velocities,
+		"planet_radii": planet_radii,
+		"body_positions": body_positions,
+		"body_velocities": body_velocities,
+		"test_pos": ship_pos,
+		"test_vel": ship_vel,
+		"test_time": sim_time,
+		"closest_approach_distance": initial_rel_ship_planet.length(),
+		"closest_approach_time": 0.0,
+		"step_index": 0,
+	}
 
-	var initial_rel_ship_planet: Vector3 = test_pos - SimulationState.planet_pos
-	var closest_approach_distance: float = initial_rel_ship_planet.length()
-	var closest_approach_time: float = 0.0
+func get_prediction_job_total_steps(job: Dictionary) -> int:
+	return int(job.get("prediction_steps", 0))
 
-	for i in range(prediction_steps):
-		_evaluate_body_states_for_time(compiled_bodies, test_time, body_positions, body_velocities)
-		var predicted_planet_pos: Vector3 = SimulationState.planet_pos
-		if planet_body_index >= 0 and planet_body_index < body_positions.size():
-			predicted_planet_pos = body_positions[planet_body_index]
-		var rel_ship_planet: Vector3 = test_pos - predicted_planet_pos
+func get_prediction_job_completed_steps(job: Dictionary) -> int:
+	return int(job.get("step_index", 0))
 
-		ship_points.append(rel_ship_planet)
-		ship_velocities.append(test_vel)
+func get_prediction_job_progress(job: Dictionary) -> float:
+	var total_steps: int = max(get_prediction_job_total_steps(job), 1)
+	return clampf(float(get_prediction_job_completed_steps(job)) / float(total_steps), 0.0, 1.0)
 
-		var report_t: float = float(i) * prediction_step_seconds
-		var true_radius: float = rel_ship_planet.length()
-		planet_radii.append(true_radius)
+func is_prediction_job_complete(job: Dictionary) -> bool:
+	return get_prediction_job_completed_steps(job) >= get_prediction_job_total_steps(job)
 
-		if true_radius < closest_approach_distance:
-			closest_approach_distance = true_radius
-			closest_approach_time = report_t
+func step_prediction_job(job: Dictionary, max_steps: int) -> void:
+	var steps_to_run: int = max(max_steps, 0)
+	if steps_to_run <= 0:
+		return
+	while steps_to_run > 0 and not is_prediction_job_complete(job):
+		_step_prediction_job_once(job)
+		job["step_index"] = get_prediction_job_completed_steps(job) + 1
+		steps_to_run -= 1
 
-		for child_i in range(child_body_infos.size()):
-			var body_info: Dictionary = child_body_infos[child_i]
-			var body_index: int = body_info.get("body_index", -1)
-			var parent_index: int = body_info.get("parent_index", -1)
-			if body_index < 0 or parent_index < 0:
-				continue
-			if body_index >= body_positions.size() or parent_index >= body_positions.size():
-				continue
+func _step_prediction_job_once(job: Dictionary) -> void:
+	var empty_compiled_bodies: Array[Dictionary] = []
+	var empty_vector3_array: Array[Vector3] = []
+	var empty_float_array: Array[float] = []
+	var empty_int_array: Array[int] = []
+	var compiled_bodies: Array[Dictionary] = job.get("compiled_bodies", empty_compiled_bodies)
+	var body_positions: Array[Vector3] = job.get("body_positions", empty_vector3_array)
+	var body_velocities: Array[Vector3] = job.get("body_velocities", empty_vector3_array)
+	var planet_body_index: int = job.get("planet_body_index", -1)
+	var child_body_infos: Array[Dictionary] = job.get("child_body_infos", empty_compiled_bodies)
+	var child_relative_points: Array = job.get("child_relative_points", [])
+	var child_dominance_masks: Array = job.get("child_dominance_masks", [])
+	var child_best_distances: Array[float] = job.get("child_best_distances", empty_float_array)
+	var child_best_times: Array[float] = job.get("child_best_times", empty_float_array)
+	var child_best_relative_speeds: Array[float] = job.get("child_best_relative_speeds", empty_float_array)
+	var child_best_indices: Array[int] = job.get("child_best_indices", empty_int_array)
+	var ship_points: Array[Vector3] = job.get("ship_points", empty_vector3_array)
+	var ship_velocities: Array[Vector3] = job.get("ship_velocities", empty_vector3_array)
+	var planet_radii: Array[float] = job.get("planet_radii", empty_float_array)
+	var test_pos: Vector3 = job.get("test_pos", Vector3.ZERO)
+	var test_vel: Vector3 = job.get("test_vel", Vector3.ZERO)
+	var test_time: float = job.get("test_time", 0.0)
+	var prediction_step_seconds: float = job.get("prediction_step_seconds", 0.0)
+	var closest_approach_distance: float = job.get("closest_approach_distance", INF)
+	var closest_approach_time: float = job.get("closest_approach_time", -1.0)
+	var step_index: int = get_prediction_job_completed_steps(job)
 
-			var predicted_body_pos: Vector3 = body_positions[body_index]
-			var predicted_parent_pos: Vector3 = body_positions[parent_index]
-			var predicted_body_vel: Vector3 = body_velocities[body_index] if body_index < body_velocities.size() else Vector3.ZERO
-			var rel_body_parent: Vector3 = predicted_body_pos - predicted_parent_pos
-			child_relative_points[child_i].append(rel_body_parent)
+	_evaluate_body_states_for_time(compiled_bodies, test_time, body_positions, body_velocities)
+	var predicted_planet_pos: Vector3 = SimulationState.planet_pos
+	if planet_body_index >= 0 and planet_body_index < body_positions.size():
+		predicted_planet_pos = body_positions[planet_body_index]
+	var rel_ship_planet: Vector3 = test_pos - predicted_planet_pos
 
-			var d_body: float = (test_pos - predicted_body_pos).length()
-			if d_body < child_best_distances[child_i]:
-				child_best_distances[child_i] = d_body
-				child_best_times[child_i] = report_t
-				child_best_relative_speeds[child_i] = (test_vel - predicted_body_vel).length()
-				child_best_indices[child_i] = i
+	ship_points.append(rel_ship_planet)
+	ship_velocities.append(test_vel)
 
-		var child_body_gravities: Array[float] = []
-		var child_parent_gravities: Array[float] = []
-		child_body_gravities.resize(child_body_infos.size())
-		child_parent_gravities.resize(child_body_infos.size())
-		var dominant_child_index_by_parent: Dictionary = {}
-		var dominant_child_gravity_by_parent: Dictionary = {}
+	var report_t: float = float(step_index) * prediction_step_seconds
+	var true_radius: float = rel_ship_planet.length()
+	planet_radii.append(true_radius)
 
-		for child_i in range(child_body_infos.size()):
-			var body_info: Dictionary = child_body_infos[child_i]
-			var body_index: int = body_info.get("body_index", -1)
-			var parent_index: int = body_info.get("parent_index", -1)
-			if body_index < 0 or parent_index < 0:
-				child_body_gravities[child_i] = 0.0
-				child_parent_gravities[child_i] = 0.0
-				continue
-			if body_index >= body_positions.size() or parent_index >= body_positions.size():
-				child_body_gravities[child_i] = 0.0
-				child_parent_gravities[child_i] = 0.0
-				continue
+	if true_radius < closest_approach_distance:
+		closest_approach_distance = true_radius
+		closest_approach_time = report_t
 
-			var body_mu: float = compiled_bodies[body_index].get("mu", 0.0)
-			var parent_mu: float = compiled_bodies[parent_index].get("mu", 0.0)
-			var d_body: float = (test_pos - body_positions[body_index]).length()
-			var d_parent: float = (test_pos - body_positions[parent_index]).length()
-			var g_body: float = _compute_inverse_square_gravity(body_mu, d_body)
-			var g_parent: float = _compute_inverse_square_gravity(parent_mu, d_parent)
+	for child_i in range(child_body_infos.size()):
+		var body_info: Dictionary = child_body_infos[child_i]
+		var body_index: int = body_info.get("body_index", -1)
+		var parent_index: int = body_info.get("parent_index", -1)
+		if body_index < 0 or parent_index < 0:
+			continue
+		if body_index >= body_positions.size() or parent_index >= body_positions.size():
+			continue
 
-			child_body_gravities[child_i] = g_body
-			child_parent_gravities[child_i] = g_parent
+		var predicted_body_pos: Vector3 = body_positions[body_index]
+		var predicted_parent_pos: Vector3 = body_positions[parent_index]
+		var predicted_body_vel: Vector3 = body_velocities[body_index] if body_index < body_velocities.size() else Vector3.ZERO
+		var rel_body_parent: Vector3 = predicted_body_pos - predicted_parent_pos
+		child_relative_points[child_i].append(rel_body_parent)
 
-			if g_body <= g_parent:
-				continue
+		var d_body: float = (test_pos - predicted_body_pos).length()
+		if d_body < child_best_distances[child_i]:
+			child_best_distances[child_i] = d_body
+			child_best_times[child_i] = report_t
+			child_best_relative_speeds[child_i] = (test_vel - predicted_body_vel).length()
+			child_best_indices[child_i] = step_index
 
-			var current_best_child_index: int = int(dominant_child_index_by_parent.get(parent_index, -1))
-			var current_best_gravity: float = float(dominant_child_gravity_by_parent.get(parent_index, -1.0))
-			if current_best_child_index < 0 or g_body > current_best_gravity:
-				dominant_child_index_by_parent[parent_index] = child_i
-				dominant_child_gravity_by_parent[parent_index] = g_body
+	var child_body_gravities: Array[float] = []
+	var child_parent_gravities: Array[float] = []
+	child_body_gravities.resize(child_body_infos.size())
+	child_parent_gravities.resize(child_body_infos.size())
+	var dominant_child_index_by_parent: Dictionary = {}
+	var dominant_child_gravity_by_parent: Dictionary = {}
 
-		for child_i in range(child_body_infos.size()):
-			var body_info: Dictionary = child_body_infos[child_i]
-			var parent_index: int = body_info.get("parent_index", -1)
-			var dominant_child_index: int = int(dominant_child_index_by_parent.get(parent_index, -1))
-			var g_body: float = child_body_gravities[child_i]
-			var g_parent: float = child_parent_gravities[child_i]
-			child_dominance_masks[child_i].append(
-				g_body > g_parent and dominant_child_index == child_i
-			)
+	for child_i in range(child_body_infos.size()):
+		var body_info: Dictionary = child_body_infos[child_i]
+		var body_index: int = body_info.get("body_index", -1)
+		var parent_index: int = body_info.get("parent_index", -1)
+		if body_index < 0 or parent_index < 0:
+			child_body_gravities[child_i] = 0.0
+			child_parent_gravities[child_i] = 0.0
+			continue
+		if body_index >= body_positions.size() or parent_index >= body_positions.size():
+			child_body_gravities[child_i] = 0.0
+			child_parent_gravities[child_i] = 0.0
+			continue
 
-		var accel: Vector3 = _gravity_accel(test_pos, compiled_bodies, body_positions)
-		test_vel += accel * prediction_step_seconds
-		test_pos += test_vel * prediction_step_seconds
-		test_time += prediction_step_seconds
+		var body_mu: float = compiled_bodies[body_index].get("mu", 0.0)
+		var parent_mu: float = compiled_bodies[parent_index].get("mu", 0.0)
+		var d_body: float = (test_pos - body_positions[body_index]).length()
+		var d_parent: float = (test_pos - body_positions[parent_index]).length()
+		var g_body: float = _compute_inverse_square_gravity(body_mu, d_body)
+		var g_parent: float = _compute_inverse_square_gravity(parent_mu, d_parent)
+		child_body_gravities[child_i] = g_body
+		child_parent_gravities[child_i] = g_parent
+
+		if g_body <= g_parent:
+			continue
+		var current_best_child_index: int = int(dominant_child_index_by_parent.get(parent_index, -1))
+		var current_best_gravity: float = float(dominant_child_gravity_by_parent.get(parent_index, -1.0))
+		if current_best_child_index < 0 or g_body > current_best_gravity:
+			dominant_child_index_by_parent[parent_index] = child_i
+			dominant_child_gravity_by_parent[parent_index] = g_body
+
+	for child_i in range(child_body_infos.size()):
+		var body_info: Dictionary = child_body_infos[child_i]
+		var parent_index: int = body_info.get("parent_index", -1)
+		var dominant_child_index: int = int(dominant_child_index_by_parent.get(parent_index, -1))
+		var g_body: float = child_body_gravities[child_i]
+		var g_parent: float = child_parent_gravities[child_i]
+		child_dominance_masks[child_i].append(g_body > g_parent and dominant_child_index == child_i)
+
+	var accel: Vector3 = _gravity_accel(test_pos, compiled_bodies, body_positions)
+	test_vel += accel * prediction_step_seconds
+	test_pos += test_vel * prediction_step_seconds
+	test_time += prediction_step_seconds
+
+	job["test_pos"] = test_pos
+	job["test_vel"] = test_vel
+	job["test_time"] = test_time
+	job["closest_approach_distance"] = closest_approach_distance
+	job["closest_approach_time"] = closest_approach_time
+
+func build_prediction_from_job(job: Dictionary) -> Dictionary:
+	var empty_compiled_bodies: Array[Dictionary] = []
+	var empty_vector3_array: Array[Vector3] = []
+	var empty_float_array: Array[float] = []
+	var empty_int_array: Array[int] = []
+	var ship_points: Array[Vector3] = job.get("ship_points", empty_vector3_array)
+	var ship_velocities: Array[Vector3] = job.get("ship_velocities", empty_vector3_array)
+	var planet_radii: Array[float] = job.get("planet_radii", empty_float_array)
+	var child_body_infos: Array[Dictionary] = job.get("child_body_infos", empty_compiled_bodies)
+	var child_relative_points: Array = job.get("child_relative_points", [])
+	var child_dominance_masks: Array = job.get("child_dominance_masks", [])
+	var child_best_distances: Array[float] = job.get("child_best_distances", empty_float_array)
+	var child_best_times: Array[float] = job.get("child_best_times", empty_float_array)
+	var child_best_relative_speeds: Array[float] = job.get("child_best_relative_speeds", empty_float_array)
+	var child_best_indices: Array[int] = job.get("child_best_indices", empty_int_array)
+	var prediction_step_seconds: float = job.get("prediction_step_seconds", 0.0)
+	var extrema_window_radius: int = job.get("extrema_window_radius", 4)
+	var closest_approach_distance: float = job.get("closest_approach_distance", -1.0)
+	var closest_approach_time: float = job.get("closest_approach_time", -1.0)
 
 	var predicted_periapsis_distance: float = -1.0
 	var predicted_apoapsis_distance: float = -1.0
@@ -452,61 +544,42 @@ func compute(
 	var predicted_apoapsis_index: int = -1
 
 	if planet_radii.size() >= 3:
-		var smoothing_half_window: int = clampi(int(_extrema_window_radius / 2) + 1, 2, 4)
+		var smoothing_half_window: int = clampi(int(extrema_window_radius / 2) + 1, 2, 4)
 		var smoothed_radii: Array[float] = _build_smoothed_radii(planet_radii, smoothing_half_window)
-
 		var next_pe_index: int = _find_first_local_minimum_index(smoothed_radii, 1)
 		var next_ap_index: int = _find_first_local_maximum_index(smoothed_radii, 1)
 
 		if next_pe_index >= 0 and next_pe_index < ship_points.size():
-			next_pe_index = _refine_extremum_to_local_best(
-				planet_radii,
-				next_pe_index,
-				4,
-				false
-			)
-
+			next_pe_index = _refine_extremum_to_local_best(planet_radii, next_pe_index, 4, false)
 			predicted_periapsis_index = next_pe_index
 			predicted_periapsis_distance = planet_radii[next_pe_index]
 			predicted_periapsis_time = float(next_pe_index) * prediction_step_seconds
 
 		if next_ap_index >= 0 and next_ap_index < ship_points.size():
-			next_ap_index = _refine_extremum_to_local_best(
-				planet_radii,
-				next_ap_index,
-				4,
-				true
-			)
-
+			next_ap_index = _refine_extremum_to_local_best(planet_radii, next_ap_index, 4, true)
 			predicted_apoapsis_index = next_ap_index
 			predicted_apoapsis_distance = planet_radii[next_ap_index]
 			predicted_apoapsis_time = float(next_ap_index) * prediction_step_seconds
 
 		var chunk_start: int = 0
 		var chunk_end: int = _find_local_chunk_end(ship_points, chunk_start)
-
 		if chunk_end > chunk_start + 6:
 			var local_min_r: float = INF
 			var local_max_r: float = -INF
 			var local_mean_r: float = 0.0
 			var local_count: int = 0
-
 			for i in range(chunk_start, chunk_end + 1):
 				var r: float = smoothed_radii[i]
 				local_min_r = min(local_min_r, r)
 				local_max_r = max(local_max_r, r)
 				local_mean_r += r
 				local_count += 1
-
 			if local_count > 0:
 				local_mean_r /= float(local_count)
-
 				var local_spread_ratio: float = 0.0
 				if local_mean_r > 0.0001:
 					local_spread_ratio = (local_max_r - local_min_r) / local_mean_r
-
 				var looks_near_circular: bool = local_spread_ratio < 0.012
-
 				var apsides_missing_or_collapsed: bool = false
 				if predicted_periapsis_index < 0 or predicted_apoapsis_index < 0:
 					apsides_missing_or_collapsed = true
@@ -523,10 +596,8 @@ func compute(
 						var apsides_too_close_together: bool = apsis_spatial_gap < projected_mean_radius * 1.20
 						if opposite_error > PI * 0.18 or apsides_too_close_together:
 							apsides_missing_or_collapsed = true
-
 				if looks_near_circular and apsides_missing_or_collapsed:
 					var pe_index: int = min(chunk_start + 8, chunk_end)
-
 					var opposite_target: Vector2 = -_project_planet_frame(ship_points[pe_index])
 					var ap_index: int = _find_closest_projected_index_to_point_in_range(
 						ship_points,
@@ -534,11 +605,9 @@ func compute(
 						pe_index + 1,
 						chunk_end,
 					)
-
 					predicted_periapsis_index = pe_index
 					predicted_periapsis_distance = planet_radii[pe_index]
 					predicted_periapsis_time = float(pe_index) * prediction_step_seconds
-
 					if ap_index >= 0 and ap_index < ship_points.size():
 						predicted_apoapsis_index = ap_index
 						predicted_apoapsis_distance = planet_radii[ap_index]
@@ -604,3 +673,24 @@ func compute(
 		"predicted_periapsis_index": predicted_periapsis_index,
 		"predicted_apoapsis_index": predicted_apoapsis_index
 	}
+
+func compute(
+	ship_pos: Vector3,
+	ship_vel: Vector3,
+	sim_time: float,
+	prediction_step_seconds: float,
+	prediction_steps: int,
+	extrema_window_radius: int,
+	radial_extrema_tolerance: float
+) -> Dictionary:
+	var job: Dictionary = create_prediction_job(
+		ship_pos,
+		ship_vel,
+		sim_time,
+		prediction_step_seconds,
+		prediction_steps,
+		extrema_window_radius,
+		radial_extrema_tolerance
+	)
+	step_prediction_job(job, prediction_steps)
+	return build_prediction_from_job(job)

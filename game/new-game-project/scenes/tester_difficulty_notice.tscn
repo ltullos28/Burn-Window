@@ -53,7 +53,7 @@ text = "Thank you for testing the game!
 
 The normal and hard difficulties currently have infinite resources because I need to gather play data.
 
-You can help me by screenshotting the screen shown at the end of your run. o7"
+You can contribute to my data collection by screenshotting the screen shown at the end of your run. o7"
 autowrap_mode = 3
 
 [node name="ContinueButton" type="Button" parent="CenterContainer/Panel/PanelMargin/VBox" unique_id=247560930]

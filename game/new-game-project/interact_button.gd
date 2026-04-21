@@ -157,12 +157,6 @@ func press() -> void:
 			if trajectory_map != null and trajectory_map.has_method("request_refresh"):
 				trajectory_map.request_refresh()
 
-			if refresh_sound != null and refresh_sound.has_method("start_refresh"):
-				var duration: float = 1.8
-				if trajectory_map != null and trajectory_map.has_method("get_reveal_duration"):
-					duration = trajectory_map.get_reveal_duration()
-				refresh_sound.start_refresh(duration)
-
 		ActionType.TRAJECTORY_ZOOM:
 			is_held = true
 			repeat_started = false

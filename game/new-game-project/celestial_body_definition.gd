@@ -25,3 +25,6 @@ enum OrbitMode {
 @export var initial_velocity: Vector3 = Vector3.ZERO
 @export_group("Visual")
 @export var visual_scene: PackedScene
+@export var runtime_albedo_texture: Texture2D
+@export var runtime_albedo_color_enabled: bool = false
+@export var runtime_albedo_color: Color = Color(0.82, 0.84, 0.9, 1.0)

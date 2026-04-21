@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://5jylilji4mrh"]
+
+[node name="Node3D" type="Node3D" unique_id=1393194671]
+
+[node name="body" type="CSGBox3D" parent="." unique_id=923568126]
+size = Vector3(2, 0.5, 1)
+
+[node name="leg1" type="CSGPolygon3D" parent="body" unique_id=695088876]
+transform = Transform3D(1, 0, 0, 0, -1, 8.742278e-08, 0, -8.742278e-08, -1, 1, 0.25, -0.5)
+polygon = PackedVector2Array(0, 0, 0, 0.5, 1, 1)
+
+[node name="leg2" type="CSGPolygon3D" parent="body" unique_id=1659258307]
+transform = Transform3D(-0.99999994, 8.742278e-08, 0, -8.742277e-08, -1, 0, 0, 0, 0.99999994, -1, 0.25, 0.5)
+polygon = PackedVector2Array(0, 0, 0, 0.5, 1, 1)
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="body" unique_id=830964924]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6325332, 0, 0)
+radius = 0.1

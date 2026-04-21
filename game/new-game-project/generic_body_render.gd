@@ -4,6 +4,7 @@ class_name GenericBodyRender
 const HAZE_SHADER := preload("res://planetary_haze_shell.gdshader")
 
 @export var body_color: Color = Color(0.82, 0.84, 0.9, 1.0)
+@export var body_albedo_texture: Texture2D
 @export var emission_strength: float = 0.0
 @export var haze_enabled: bool = true
 @export var haze_color: Color = Color(0.84, 0.88, 1.0, 1.0)
@@ -46,6 +47,7 @@ func _apply_surface_material() -> void:
 
 	surface_material = StandardMaterial3D.new()
 	surface_material.albedo_color = body_color
+	surface_material.albedo_texture = body_albedo_texture
 	surface_material.roughness = 0.95
 	surface_material.metallic = 0.0
 	surface_material.emission_enabled = emission_strength > 0.001
@@ -53,6 +55,14 @@ func _apply_surface_material() -> void:
 		surface_material.emission = body_color
 		surface_material.emission_energy_multiplier = emission_strength
 	target_root.material_override = surface_material
+
+func apply_runtime_visual_overrides(definition: CelestialBodyDefinition) -> void:
+	if definition == null:
+		return
+	body_albedo_texture = definition.runtime_albedo_texture
+	if definition.runtime_albedo_color_enabled:
+		body_color = definition.runtime_albedo_color
+	_apply_surface_material()
 
 func _setup_haze() -> void:
 	haze_material = ShaderMaterial.new()

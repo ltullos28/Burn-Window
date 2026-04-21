@@ -1,7 +1,11 @@
 [gd_resource type="StandardMaterial3D" format=3 uid="uid://dh1hxv0knaof3"]
 
+[ext_resource type="Texture2D" uid="uid://bejrjctlnhna4" path="res://scenes/IBM_5155_keyboard.png" id="1_tmiw7"]
+[ext_resource type="Texture2D" uid="uid://cu23hksx6b8bu" path="res://scenes/Barren_02-1024x512.png" id="2_28spb"]
+
 [resource]
 albedo_color = Color(0.34789982, 0.34789982, 0.34789982, 1)
-metallic = 0.72
-metallic_specular = 1.0
-roughness = 0.4
+metallic = 0.27
+metallic_specular = 0.48
+metallic_texture = ExtResource("1_tmiw7")
+roughness_texture = ExtResource("2_28spb")

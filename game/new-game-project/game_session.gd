@@ -78,8 +78,8 @@ const DIFFICULTY_SCENARIOS := {
 		"label": "Normal",
 		"summary": "Less favorable timing, a slightly skewed starting orbit, and tighter encounter windows.",
 		"ship_start": {
-			"position_offset": Vector3(940.0, 30.0, 0.0),
-			"velocity": Vector3(0.0, 0.7, 4.02),
+			"position_offset": Vector3(952.0, 42.0, -86.0),
+			"velocity": Vector3(-0.32, 0.58, 4.02),
 		},
 		"resources": {
 			"starting_fuel": 100.0,

@@ -34,6 +34,7 @@ func _ensure_body_visual(visual_name: String, definition: CelestialBodyDefinitio
 			push_warning("ChildBodyVisuals: visual '%s' for body '%s' has no BodyRender." % [visual_name, String(definition.body_name)])
 			return
 		body_render.body_name = definition.body_name
+		_apply_runtime_visual_overrides(visual_root, body_render, definition)
 		add_child(visual_root)
 	else:
 		body_render = _find_body_render_node(visual_root)
@@ -43,6 +44,7 @@ func _ensure_body_visual(visual_name: String, definition: CelestialBodyDefinitio
 		return
 
 	body_render.body_name = definition.body_name
+	_apply_runtime_visual_overrides(visual_root, body_render, definition)
 
 func _instantiate_visual_root(definition: CelestialBodyDefinition) -> Node:
 	if definition.visual_scene != null:
@@ -83,3 +85,12 @@ func _find_body_render_node(node: Node) -> BodyRender:
 		if found != null:
 			return found
 	return null
+
+func _apply_runtime_visual_overrides(visual_root: Node, body_render: BodyRender, definition: CelestialBodyDefinition) -> void:
+	if definition == null or body_render == null:
+		return
+	if body_render is GenericBodyRender:
+		(body_render as GenericBodyRender).apply_runtime_visual_overrides(definition)
+	elif visual_root != null and visual_root.has_method("apply_runtime_visual_overrides"):
+		# Optional hook for future runtime-driven custom visual scenes.
+		visual_root.call("apply_runtime_visual_overrides", definition)

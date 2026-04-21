@@ -106,6 +106,8 @@ var _pending_quit_after_settings_prompt: bool = false
 @onready var mouse_smoothing_slider_value_label: Label = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/MouseSmoothingDetailMargin/MouseSmoothingDetailGrid/MouseSmoothingValueLabel
 @onready var camera_shake_toggle: CheckButton = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid/CameraShakeToggle
 @onready var camera_shake_value_label: Label = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid/CameraShakeValueLabel
+@onready var lock_to_vector_toggle: CheckButton = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid/LockToVectorToggle
+@onready var lock_to_vector_value_label: Label = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid/LockToVectorValueLabel
 @onready var engine_volume_slider: HSlider = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid/EngineVolumeSlider
 @onready var engine_volume_value_label: Label = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid/EngineVolumeValueLabel
 @onready var ambient_volume_slider: HSlider = $CanvasLayer/UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/AudioGrid/AmbientVolumeSlider
@@ -498,6 +500,7 @@ func _bind_settings_controls() -> void:
 	ambient_volume_slider.value_changed.connect(_on_ambient_volume_changed)
 	ui_volume_slider.value_changed.connect(_on_ui_volume_changed)
 	camera_shake_toggle.toggled.connect(_on_camera_shake_toggled)
+	lock_to_vector_toggle.toggled.connect(_on_lock_to_vector_toggled)
 	planet_effects_toggle.toggled.connect(_on_planet_effects_toggled)
 	_connect_confirmed_press(reset_settings_button, _on_reset_settings_pressed)
 	_connect_confirmed_press(apply_settings_button, _on_apply_settings_pressed)
@@ -533,6 +536,7 @@ func _refresh_settings_controls() -> void:
 	ui_volume_slider.value = float(_pending_settings.get("ui_volume", settings.ui_volume))
 	invert_y_toggle.button_pressed = bool(_pending_settings.get("invert_y_look", settings.invert_y_look))
 	camera_shake_toggle.button_pressed = bool(_pending_settings.get("camera_shake_enabled", settings.camera_shake_enabled))
+	lock_to_vector_toggle.button_pressed = bool(_pending_settings.get("lock_to_vector_enabled", settings.lock_to_vector_enabled))
 	planet_effects_toggle.button_pressed = bool(_pending_settings.get("planet_effects_enabled", settings.planet_effects_enabled))
 
 	mouse_sensitivity_value_label.text = "%d" % int(round(mouse_sensitivity_slider.value))
@@ -546,6 +550,7 @@ func _refresh_settings_controls() -> void:
 	ui_volume_value_label.text = "%d%%" % int(round(ui_volume_slider.value * 100.0))
 	invert_y_value_label.text = "On" if invert_y_toggle.button_pressed else "Off"
 	camera_shake_value_label.text = "On" if camera_shake_toggle.button_pressed else "Off"
+	lock_to_vector_value_label.text = "On" if lock_to_vector_toggle.button_pressed else "Off"
 	planet_effects_value_label.text = "On" if planet_effects_toggle.button_pressed else "Off"
 	mouse_smoothing_detail_margin.visible = mouse_smoothing_toggle.button_pressed
 	settings_intro_label.text = "Adjust your settings."
@@ -681,6 +686,16 @@ func _on_camera_shake_toggled(value: bool) -> void:
 	if settings != null:
 		_pending_settings["camera_shake_enabled"] = value
 		camera_shake_value_label.text = "On" if value else "Off"
+		_mark_settings_dirty()
+
+
+func _on_lock_to_vector_toggled(value: bool) -> void:
+	if _synchronizing_settings_ui:
+		return
+	var settings = _settings()
+	if settings != null:
+		_pending_settings["lock_to_vector_enabled"] = value
+		lock_to_vector_value_label.text = "On" if value else "Off"
 		_mark_settings_dirty()
 
 

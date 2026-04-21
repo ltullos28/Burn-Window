@@ -17,6 +17,7 @@ const DEFAULT_CAMERA_SHAKE_ENABLED := true
 const DEFAULT_PLANET_EFFECTS_ENABLED := true
 const DEFAULT_FULLSCREEN_ENABLED := true
 const DEFAULT_RESOLUTION := Vector2i(1920, 1080)
+const DEFAULT_LOCK_TO_VECTOR_ENABLED := true
 
 const MIN_MOUSE_SENSITIVITY := 0.001
 const MAX_MOUSE_SENSITIVITY := 0.008
@@ -50,6 +51,7 @@ var camera_shake_enabled: bool = DEFAULT_CAMERA_SHAKE_ENABLED
 var planet_effects_enabled: bool = DEFAULT_PLANET_EFFECTS_ENABLED
 var fullscreen_enabled: bool = DEFAULT_FULLSCREEN_ENABLED
 var resolution: Vector2i = DEFAULT_RESOLUTION
+var lock_to_vector_enabled: bool = DEFAULT_LOCK_TO_VECTOR_ENABLED
 
 
 func _ready() -> void:
@@ -81,6 +83,7 @@ func load_settings() -> void:
 		MAX_CAMERA_FOV
 	)
 	invert_y_look = bool(config.get_value("controls", "invert_y_look", DEFAULT_INVERT_Y_LOOK))
+	lock_to_vector_enabled = bool(config.get_value("controls", "lock_to_vector_enabled", DEFAULT_LOCK_TO_VECTOR_ENABLED))
 	engine_volume = clampf(
 		float(config.get_value("audio", "engine_volume", DEFAULT_ENGINE_VOLUME)),
 		MIN_VOLUME_SCALE,
@@ -124,6 +127,7 @@ func save_settings() -> void:
 	config.set_value("controls", "mouse_smoothing_speed", mouse_smoothing_speed)
 	config.set_value("controls", "camera_fov", camera_fov)
 	config.set_value("controls", "invert_y_look", invert_y_look)
+	config.set_value("controls", "lock_to_vector_enabled", lock_to_vector_enabled)
 	config.set_value("audio", "engine_volume", engine_volume)
 	config.set_value("audio", "ambient_volume", ambient_volume)
 	config.set_value("audio", "ui_volume", ui_volume)
@@ -143,6 +147,7 @@ func to_dictionary() -> Dictionary:
 		"mouse_smoothing_speed": mouse_smoothing_speed,
 		"camera_fov": camera_fov,
 		"invert_y_look": invert_y_look,
+		"lock_to_vector_enabled": lock_to_vector_enabled,
 		"engine_volume": engine_volume,
 		"ambient_volume": ambient_volume,
 		"ui_volume": ui_volume,
@@ -160,6 +165,7 @@ func default_dictionary() -> Dictionary:
 		"mouse_smoothing_speed": DEFAULT_MOUSE_SMOOTHING_SPEED,
 		"camera_fov": DEFAULT_CAMERA_FOV,
 		"invert_y_look": DEFAULT_INVERT_Y_LOOK,
+		"lock_to_vector_enabled": DEFAULT_LOCK_TO_VECTOR_ENABLED,
 		"engine_volume": DEFAULT_ENGINE_VOLUME,
 		"ambient_volume": DEFAULT_AMBIENT_VOLUME,
 		"ui_volume": DEFAULT_UI_VOLUME,
@@ -188,6 +194,7 @@ func apply_dictionary(values: Dictionary, save_immediately: bool = true) -> void
 		MAX_CAMERA_FOV
 	)
 	invert_y_look = bool(values.get("invert_y_look", invert_y_look))
+	lock_to_vector_enabled = bool(values.get("lock_to_vector_enabled", lock_to_vector_enabled))
 	engine_volume = clampf(
 		float(values.get("engine_volume", engine_volume)),
 		MIN_VOLUME_SCALE,
@@ -299,6 +306,14 @@ func set_invert_y_look_value(value: bool) -> void:
 	if invert_y_look == value:
 		return
 	invert_y_look = value
+	_save_and_emit()
+
+
+# Expose this in the settings UI as a checkbox labeled "Lock To Vector".
+func set_lock_to_vector_enabled_value(value: bool) -> void:
+	if lock_to_vector_enabled == value:
+		return
+	lock_to_vector_enabled = value
 	_save_and_emit()
 
 

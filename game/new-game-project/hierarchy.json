@@ -93,7 +93,7 @@
 											"type": "MeshInstance3D"
 										}
 									],
-									"name": "NormalMarker",
+									"name": "AntiNormalMarker",
 									"script": "",
 									"type": "MeshInstance3D"
 								},
@@ -111,7 +111,7 @@
 								},
 								{
 									"children": [],
-									"name": "AntiNormalMarker",
+									"name": "NormalMarker",
 									"script": "",
 									"type": "MeshInstance3D"
 								},
@@ -224,79 +224,17 @@
 						{
 							"children": [
 								{
-									"children": [
-										{
-											"children": [
-												{
-													"children": [
-														{
-															"children": [
-																{
-																	"children": [],
-																	"name": "CollisionShape3D",
-																	"script": "",
-																	"type": "CollisionShape3D"
-																}
-															],
-															"name": "PlusInteract",
-															"script": "res://interact_button.gd",
-															"type": "Area3D"
-														}
-													],
-													"name": "GreenButton",
-													"script": "",
-													"type": "MeshInstance3D"
-												}
-											],
-											"name": "ButtonPlus",
-											"script": "",
-											"type": "MeshInstance3D"
-										},
-										{
-											"children": [
-												{
-													"children": [
-														{
-															"children": [
-																{
-																	"children": [],
-																	"name": "CollisionShape3D",
-																	"script": "",
-																	"type": "CollisionShape3D"
-																}
-															],
-															"name": "MinusInteract",
-															"script": "res://interact_button.gd",
-															"type": "Area3D"
-														}
-													],
-													"name": "RedButton",
-													"script": "",
-													"type": "MeshInstance3D"
-												}
-											],
-											"name": "ButtonMinus",
-											"script": "",
-											"type": "MeshInstance3D"
-										}
-									],
-									"name": "BaseMesh",
+									"children": [],
+									"name": "CSGPolygon3D",
 									"script": "",
-									"type": "MeshInstance3D"
+									"type": "CSGPolygon3D"
 								},
 								{
 									"children": [],
-									"name": "Label",
+									"name": "CSGPolygon3D2",
 									"script": "",
-									"type": "Label3D"
-								}
-							],
-							"name": "PitchLever",
-							"script": "res://button_control.gd",
-							"type": "Node3D"
-						},
-						{
-							"children": [
+									"type": "CSGPolygon3D"
+								},
 								{
 									"children": [
 										{
@@ -306,71 +244,104 @@
 														{
 															"children": [
 																{
-																	"children": [],
-																	"name": "CollisionShape3D",
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "CollisionShape3D",
+																			"script": "",
+																			"type": "CollisionShape3D"
+																		}
+																	],
+																	"name": "PlusInteract",
+																	"script": "res://interact_button.gd",
+																	"type": "Area3D"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Head",
+																			"script": "",
+																			"type": "MeshInstance3D"
+																		}
+																	],
+																	"name": "Arrow",
 																	"script": "",
-																	"type": "CollisionShape3D"
+																	"type": "MeshInstance3D"
 																}
 															],
-															"name": "PlusInteract",
-															"script": "res://interact_button.gd",
-															"type": "Area3D"
+															"name": "GreenButton",
+															"script": "",
+															"type": "MeshInstance3D"
 														}
 													],
-													"name": "GreenButton",
+													"name": "ButtonPlus",
 													"script": "",
 													"type": "MeshInstance3D"
-												}
-											],
-											"name": "ButtonPlus",
-											"script": "",
-											"type": "MeshInstance3D"
-										},
-										{
-											"children": [
+												},
 												{
 													"children": [
 														{
 															"children": [
 																{
-																	"children": [],
-																	"name": "CollisionShape3D",
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "CollisionShape3D",
+																			"script": "",
+																			"type": "CollisionShape3D"
+																		}
+																	],
+																	"name": "MinusInteract",
+																	"script": "res://interact_button.gd",
+																	"type": "Area3D"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Head",
+																			"script": "",
+																			"type": "MeshInstance3D"
+																		}
+																	],
+																	"name": "Arrow",
 																	"script": "",
-																	"type": "CollisionShape3D"
+																	"type": "MeshInstance3D"
 																}
 															],
-															"name": "MinusInteract",
-															"script": "res://interact_button.gd",
-															"type": "Area3D"
+															"name": "RedButton",
+															"script": "",
+															"type": "MeshInstance3D"
 														}
 													],
-													"name": "RedButton",
+													"name": "ButtonMinus",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [
+														{
+															"children": [],
+															"name": "RollTip",
+															"script": "",
+															"type": "MeshInstance3D"
+														}
+													],
+													"name": "RollBase",
 													"script": "",
 													"type": "MeshInstance3D"
 												}
 											],
-											"name": "ButtonMinus",
+											"name": "BaseMesh",
 											"script": "",
 											"type": "MeshInstance3D"
 										}
 									],
-									"name": "BaseMesh",
-									"script": "",
-									"type": "MeshInstance3D"
+									"name": "RollLever",
+									"script": "res://button_control.gd",
+									"type": "Node3D"
 								},
-								{
-									"children": [],
-									"name": "Label2",
-									"script": "",
-									"type": "Label3D"
-								}
-							],
-							"name": "YawLever",
-							"script": "res://button_control.gd",
-							"type": "Node3D"
-						},
-						{
-							"children": [
 								{
 									"children": [
 										{
@@ -380,26 +351,106 @@
 														{
 															"children": [
 																{
-																	"children": [],
-																	"name": "CollisionShape3D",
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "CollisionShape3D",
+																			"script": "",
+																			"type": "CollisionShape3D"
+																		}
+																	],
+																	"name": "PlusInteract",
+																	"script": "res://interact_button.gd",
+																	"type": "Area3D"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Head",
+																			"script": "",
+																			"type": "MeshInstance3D"
+																		}
+																	],
+																	"name": "Arrow",
 																	"script": "",
-																	"type": "CollisionShape3D"
+																	"type": "MeshInstance3D"
 																}
 															],
-															"name": "PlusInteract",
-															"script": "res://interact_button.gd",
-															"type": "Area3D"
+															"name": "GreenButton",
+															"script": "",
+															"type": "MeshInstance3D"
 														}
 													],
-													"name": "GreenButton",
+													"name": "ButtonPlus",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [
+														{
+															"children": [
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "CollisionShape3D",
+																			"script": "",
+																			"type": "CollisionShape3D"
+																		}
+																	],
+																	"name": "MinusInteract",
+																	"script": "res://interact_button.gd",
+																	"type": "Area3D"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Head",
+																			"script": "",
+																			"type": "MeshInstance3D"
+																		}
+																	],
+																	"name": "Arrow",
+																	"script": "",
+																	"type": "MeshInstance3D"
+																}
+															],
+															"name": "RedButton",
+															"script": "",
+															"type": "MeshInstance3D"
+														}
+													],
+													"name": "ButtonMinus",
 													"script": "",
 													"type": "MeshInstance3D"
 												}
 											],
-											"name": "ButtonPlus",
+											"name": "BaseMesh",
 											"script": "",
 											"type": "MeshInstance3D"
 										},
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "PitchTip",
+													"script": "",
+													"type": "MeshInstance3D"
+												}
+											],
+											"name": "PitchBase",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "PitchLever",
+									"script": "res://button_control.gd",
+									"type": "Node3D"
+								},
+								{
+									"children": [
 										{
 											"children": [
 												{
@@ -407,44 +458,104 @@
 														{
 															"children": [
 																{
-																	"children": [],
-																	"name": "CollisionShape3D",
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "CollisionShape3D",
+																			"script": "",
+																			"type": "CollisionShape3D"
+																		}
+																	],
+																	"name": "PlusInteract",
+																	"script": "res://interact_button.gd",
+																	"type": "Area3D"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Head",
+																			"script": "",
+																			"type": "MeshInstance3D"
+																		}
+																	],
+																	"name": "Arrow",
 																	"script": "",
-																	"type": "CollisionShape3D"
+																	"type": "MeshInstance3D"
 																}
 															],
-															"name": "MinusInteract",
-															"script": "res://interact_button.gd",
-															"type": "Area3D"
+															"name": "GreenButton",
+															"script": "",
+															"type": "MeshInstance3D"
 														}
 													],
-													"name": "RedButton",
+													"name": "ButtonPlus",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [
+														{
+															"children": [
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "CollisionShape3D",
+																			"script": "",
+																			"type": "CollisionShape3D"
+																		}
+																	],
+																	"name": "MinusInteract",
+																	"script": "res://interact_button.gd",
+																	"type": "Area3D"
+																},
+																{
+																	"children": [
+																		{
+																			"children": [],
+																			"name": "Head",
+																			"script": "",
+																			"type": "MeshInstance3D"
+																		}
+																	],
+																	"name": "Arrow",
+																	"script": "",
+																	"type": "MeshInstance3D"
+																}
+															],
+															"name": "RedButton",
+															"script": "",
+															"type": "MeshInstance3D"
+														}
+													],
+													"name": "ButtonMinus",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [
+														{
+															"children": [],
+															"name": "YawTip",
+															"script": "",
+															"type": "MeshInstance3D"
+														}
+													],
+													"name": "YawBase",
 													"script": "",
 													"type": "MeshInstance3D"
 												}
 											],
-											"name": "ButtonMinus",
+											"name": "BaseMesh",
 											"script": "",
 											"type": "MeshInstance3D"
 										}
 									],
-									"name": "BaseMesh",
-									"script": "",
-									"type": "MeshInstance3D"
+									"name": "YawLever",
+									"script": "res://button_control.gd",
+									"type": "Node3D"
 								},
-								{
-									"children": [],
-									"name": "Label3",
-									"script": "",
-									"type": "Label3D"
-								}
-							],
-							"name": "RollLever",
-							"script": "res://button_control.gd",
-							"type": "Node3D"
-						},
-						{
-							"children": [
 								{
 									"children": [
 										{
@@ -466,27 +577,33 @@
 											"name": "OrangeButton",
 											"script": "",
 											"type": "MeshInstance3D"
+										},
+										{
+											"children": [],
+											"name": "BaseMesh",
+											"script": "",
+											"type": "MeshInstance3D"
+										},
+										{
+											"children": [],
+											"name": "MeshInstance3D",
+											"script": "",
+											"type": "MeshInstance3D"
 										}
 									],
 									"name": "ButtonThrust",
 									"script": "",
 									"type": "MeshInstance3D"
-								},
-								{
-									"children": [],
-									"name": "Label4",
-									"script": "",
-									"type": "Label3D"
 								}
 							],
-							"name": "ThrustPad",
+							"name": "ControlPanel",
 							"script": "",
-							"type": "MeshInstance3D"
+							"type": "CSGBox3D"
 						}
 					],
 					"name": "LeverPad",
 					"script": "res://scenes/control_plate_follow.gd",
-					"type": "MeshInstance3D"
+					"type": "Node3D"
 				},
 				{
 					"children": [
@@ -550,6 +667,203 @@
 									"name": "CSGCylinder3D",
 									"script": "",
 									"type": "CSGCylinder3D"
+								},
+								{
+									"children": [],
+									"name": "pipe1",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [
+										{
+											"children": [],
+											"name": "joint",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "pipe4",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "ring",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [],
+													"name": "hookup",
+													"script": "",
+													"type": "MeshInstance3D"
+												}
+											],
+											"name": "attachment",
+											"script": "",
+											"type": "MeshInstance3D"
+										},
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "ring",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [],
+													"name": "hookup",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [],
+													"name": "hookup2",
+													"script": "",
+													"type": "MeshInstance3D"
+												}
+											],
+											"name": "attachment2",
+											"script": "",
+											"type": "MeshInstance3D"
+										},
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "ring",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [],
+													"name": "hookup",
+													"script": "",
+													"type": "MeshInstance3D"
+												}
+											],
+											"name": "attachment3",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "pipe2",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [],
+									"name": "pipe6",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [],
+									"name": "pipe7",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [],
+									"name": "pipe8",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [],
+									"name": "pipe10",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [],
+									"name": "pipe11",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "vent4",
+													"script": "",
+													"type": "MeshInstance3D"
+												}
+											],
+											"name": "vent3",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "vent",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "vent4",
+													"script": "",
+													"type": "MeshInstance3D"
+												}
+											],
+											"name": "vent3",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "vent2",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [],
+									"name": "pipe9",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [
+										{
+											"children": [
+												{
+													"children": [],
+													"name": "ring",
+													"script": "",
+													"type": "MeshInstance3D"
+												},
+												{
+													"children": [],
+													"name": "hookup",
+													"script": "",
+													"type": "MeshInstance3D"
+												}
+											],
+											"name": "attachment",
+											"script": "",
+											"type": "MeshInstance3D"
+										}
+									],
+									"name": "pipe5",
+									"script": "",
+									"type": "MeshInstance3D"
+								},
+								{
+									"children": [],
+									"name": "pipe3",
+									"script": "",
+									"type": "MeshInstance3D"
 								}
 							],
 							"name": "CSGCylinder3D",
@@ -618,6 +932,12 @@
 								{
 									"children": [],
 									"name": "ImpactPlayer",
+									"script": "",
+									"type": "AudioStreamPlayer"
+								},
+								{
+									"children": [],
+									"name": "RevealSweepPlayer",
 									"script": "",
 									"type": "AudioStreamPlayer"
 								}
@@ -1069,11 +1389,24 @@
 							"name": "ChecklistPanel",
 							"script": "",
 							"type": "PanelContainer"
+						},
+						{
+							"children": [
+								{
+									"children": [],
+									"name": "Label",
+									"script": "",
+									"type": "Label"
+								}
+							],
+							"name": "TabHandle",
+							"script": "",
+							"type": "PanelContainer"
 						}
 					],
 					"name": "RootMargin",
 					"script": "",
-					"type": "MarginContainer"
+					"type": "Control"
 				}
 			],
 			"name": "ChallengeChecklist",
@@ -1380,6 +1713,24 @@
 																								{
 																									"children": [],
 																									"name": "CameraShakeValueLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "LockToVectorLabel",
+																									"script": "",
+																									"type": "Label"
+																								},
+																								{
+																									"children": [],
+																									"name": "LockToVectorToggle",
+																									"script": "",
+																									"type": "CheckButton"
+																								},
+																								{
+																									"children": [],
+																									"name": "LockToVectorValueLabel",
 																									"script": "",
 																									"type": "Label"
 																								}
@@ -1829,7 +2180,7 @@
 						}
 					],
 					"name": "Moon 2Visual",
-					"script": "res://moon_body_visual.gd",
+					"script": "res://generic_body_render.gd",
 					"type": "Node3D"
 				}
 			],

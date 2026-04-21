@@ -5,9 +5,14 @@ const COMPLETE_COLOR := Color(0.98, 0.59, 0.17, 1.0)
 const INCOMPLETE_COLOR := Color(0.05, 0.07, 0.1, 1.0)
 const PANEL_WIDTH := 326.0
 const EDGE_MARGIN := 44.0
+const TAB_HANDLE_WIDTH := 76.0
+const TAB_HANDLE_HEIGHT := 28.0
+const TAB_TOGGLE_DURATION := 0.26
 
-@onready var root_margin: MarginContainer = $RootMargin
+@onready var root_margin: Control = $RootMargin
 @onready var checklist_panel: PanelContainer = $RootMargin/ChecklistPanel
+@onready var tab_handle: PanelContainer = $RootMargin/TabHandle
+@onready var tab_handle_label: Label = $RootMargin/TabHandle/Label
 @onready var header_label: Label = $RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox/HeaderLabel
 @onready var subheader_label: Label = $RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox/SubheaderLabel
 @onready var difficulty_label: Label = $RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox/DifficultyLabel
@@ -15,9 +20,16 @@ const EDGE_MARGIN := 44.0
 @onready var checklist_vbox: VBoxContainer = $RootMargin/ChecklistPanel/PanelMargin/ChecklistVBox
 
 var _row_widgets: Dictionary = {}
+var _collapsed: bool = false
+var _panel_tween: Tween = null
+var _expanded_offsets: Dictionary = {}
+var _collapsed_offsets: Dictionary = {}
 
 
 func _ready() -> void:
+	tab_handle_label.text = "TAB"
+	if not tab_handle.gui_input.is_connected(_on_tab_handle_gui_input):
+		tab_handle.gui_input.connect(_on_tab_handle_gui_input)
 	_connect_session_signals()
 	if not get_viewport().size_changed.is_connected(_on_viewport_size_changed):
 		get_viewport().size_changed.connect(_on_viewport_size_changed)
@@ -26,6 +38,14 @@ func _ready() -> void:
 		settings.settings_changed.connect(_on_settings_changed)
 	_rebuild_rows()
 	_refresh_display()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event: InputEventKey = event
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_TAB:
+			_set_collapsed(not _collapsed, true)
+			get_viewport().set_input_as_handled()
 
 
 func _physics_process(_delta: float) -> void:
@@ -79,6 +99,14 @@ func _on_settings_changed() -> void:
 
 func _on_viewport_size_changed() -> void:
 	_refresh_layout()
+
+
+func _on_tab_handle_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mouse_button: InputEventMouseButton = event
+		if mouse_button.button_index == MOUSE_BUTTON_LEFT and mouse_button.pressed:
+			_set_collapsed(not _collapsed, true)
+			get_viewport().set_input_as_handled()
 
 
 func _rebuild_rows() -> void:
@@ -168,7 +196,7 @@ func _refresh_display() -> void:
 
 
 func _refresh_layout() -> void:
-	if root_margin == null or checklist_panel == null or checklist_vbox == null:
+	if root_margin == null or checklist_panel == null or checklist_vbox == null or tab_handle == null:
 		return
 
 	var ui_scale: float = maxf(_get_ui_surface_scale(), 0.0001)
@@ -182,13 +210,71 @@ func _refresh_layout() -> void:
 	root_margin.anchor_right = 0.0
 	root_margin.anchor_top = 1.0
 	root_margin.anchor_bottom = 1.0
-	root_margin.offset_left = anchored_margin
-	root_margin.offset_right = root_margin.offset_left + panel_width
-	root_margin.offset_bottom = -anchored_margin
-	root_margin.offset_top = root_margin.offset_bottom - panel_height
+	var expanded_left: float = anchored_margin
+	var expanded_right: float = expanded_left + panel_width
+	var expanded_bottom: float = -anchored_margin
+	var expanded_top: float = expanded_bottom - panel_height
+	var collapse_shift: float = panel_height
+	_expanded_offsets = {
+		"left": expanded_left,
+		"right": expanded_right,
+		"top": expanded_top,
+		"bottom": expanded_bottom,
+	}
+	_collapsed_offsets = {
+		"left": expanded_left,
+		"right": expanded_right,
+		"top": expanded_top + collapse_shift,
+		"bottom": expanded_bottom + collapse_shift,
+	}
+	if _panel_tween == null:
+		_apply_root_offsets(_collapsed_offsets if _collapsed else _expanded_offsets)
+
 	# Scale the checklist as one surface while preserving a stable bottom-left screen margin.
 	root_margin.scale = Vector2.ONE * ui_scale
 	root_margin.pivot_offset = Vector2(0.0, panel_height)
+
+	tab_handle.anchor_left = 0.5
+	tab_handle.anchor_right = 0.5
+	tab_handle.anchor_top = 0.0
+	tab_handle.anchor_bottom = 0.0
+	tab_handle.custom_minimum_size = Vector2(TAB_HANDLE_WIDTH, TAB_HANDLE_HEIGHT)
+	tab_handle.offset_left = -TAB_HANDLE_WIDTH * 0.5
+	tab_handle.offset_right = TAB_HANDLE_WIDTH * 0.5
+	tab_handle.offset_top = -TAB_HANDLE_HEIGHT
+	tab_handle.offset_bottom = 0.0
+	tab_handle.pivot_offset = Vector2(TAB_HANDLE_WIDTH * 0.5, TAB_HANDLE_HEIGHT)
+	tab_handle.z_index = 1
+
+
+func _set_collapsed(collapsed: bool, animate: bool) -> void:
+	if _collapsed == collapsed and _panel_tween == null:
+		return
+	_collapsed = collapsed
+	var target_offsets: Dictionary = _collapsed_offsets if _collapsed else _expanded_offsets
+	if target_offsets.is_empty():
+		return
+	if _panel_tween != null:
+		_panel_tween.kill()
+		_panel_tween = null
+	if not animate:
+		_apply_root_offsets(target_offsets)
+		return
+	_panel_tween = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	_panel_tween.tween_property(root_margin, "offset_top", float(target_offsets.get("top", root_margin.offset_top)), TAB_TOGGLE_DURATION)
+	_panel_tween.parallel().tween_property(root_margin, "offset_bottom", float(target_offsets.get("bottom", root_margin.offset_bottom)), TAB_TOGGLE_DURATION)
+	_panel_tween.finished.connect(_on_panel_tween_finished, CONNECT_ONE_SHOT)
+
+
+func _on_panel_tween_finished() -> void:
+	_panel_tween = null
+
+
+func _apply_root_offsets(offsets: Dictionary) -> void:
+	root_margin.offset_left = float(offsets.get("left", root_margin.offset_left))
+	root_margin.offset_right = float(offsets.get("right", root_margin.offset_right))
+	root_margin.offset_top = float(offsets.get("top", root_margin.offset_top))
+	root_margin.offset_bottom = float(offsets.get("bottom", root_margin.offset_bottom))
 
 
 func _session() -> Node:

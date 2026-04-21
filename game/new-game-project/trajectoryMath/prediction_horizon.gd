@@ -109,6 +109,32 @@ func get_broad_prediction_info(
 		"quick_prediction": quick_prediction if quick_matches_final_steps else {},
 	}
 
+func get_refresh_prediction_steps(
+	orbit_solver: OrbitSolver,
+	prediction_step_seconds: float,
+	settings: Dictionary
+) -> int:
+	var focused_child_body_name: StringName = _get_focused_child_body_name(settings)
+	if _is_ship_in_focused_child_dominance(focused_child_body_name):
+		return _get_period_based_prediction_steps(
+			orbit_solver,
+			prediction_step_seconds,
+			settings,
+			focused_child_body_name
+		)
+
+	var steps_from_zoom: int = _get_zoom_based_prediction_steps(settings)
+	var steps_from_period: int = _get_period_based_prediction_steps(
+		orbit_solver,
+		prediction_step_seconds,
+		settings,
+		focused_child_body_name
+	)
+	var steps_to_use: int = max(steps_from_zoom, steps_from_period)
+	steps_to_use = max(steps_to_use, settings.get("min_prediction_steps", 1200))
+	steps_to_use = min(steps_to_use, settings.get("max_prediction_steps", 12000))
+	return steps_to_use
+
 func get_continuity_trimmed_steps(
 	prediction: Dictionary,
 	reference_body_name: StringName,

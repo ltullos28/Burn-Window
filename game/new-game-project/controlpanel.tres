@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://dp8hsq2df1ryj"]
+
+[ext_resource type="Texture2D" uid="uid://bejrjctlnhna4" path="res://scenes/IBM_5155_keyboard.png" id="1_agjgj"]
+
+[resource]
+albedo_color = Color(0.16924527, 0.16924533, 0.16924518, 1)
+metallic = 0.72
+metallic_specular = 1.0
+roughness = 0.8
+roughness_texture = ExtResource("1_agjgj")

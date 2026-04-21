@@ -393,6 +393,64 @@ func _compute_circular_orbit_linear_speed(parent_mu: float, center_distance: flo
 		return 0.0
 	return sqrt(parent_mu / center_distance)
 
+func get_orbital_plane_normal_from_relative_state(relative_pos: Vector3, relative_vel: Vector3) -> Vector3:
+	if relative_pos.length_squared() <= 0.0001 or relative_vel.length_squared() <= 0.0001:
+		return Vector3.ZERO
+	var angular_momentum: Vector3 = relative_pos.cross(relative_vel)
+	if angular_momentum.length_squared() <= 0.0001:
+		return Vector3.ZERO
+	return angular_momentum.normalized()
+
+func get_orbital_plane_normal_from_state(
+	body_pos: Vector3,
+	body_vel: Vector3,
+	frame_origin_pos: Vector3,
+	frame_origin_vel: Vector3
+) -> Vector3:
+	return get_orbital_plane_normal_from_relative_state(
+		body_pos - frame_origin_pos,
+		body_vel - frame_origin_vel
+	)
+
+func build_orbit_basis_from_elements(
+	ascending_node_radians: float,
+	inclination_radians: float,
+	argument_of_periapsis_radians: float
+) -> Basis:
+	var q_lan := Quaternion(Vector3.UP, ascending_node_radians)
+	var node_axis: Vector3 = q_lan * Vector3.RIGHT
+	if node_axis.length_squared() <= 0.000001:
+		node_axis = Vector3.RIGHT
+	else:
+		node_axis = node_axis.normalized()
+
+	var q_inc := Quaternion(node_axis, inclination_radians)
+	# Our perifocal position/velocity basis lies in the XZ plane, so the
+	# physically correct instantaneous plane normal under r x v points along
+	# local DOWN rather than UP.
+	var local_plane_normal: Vector3 = Vector3.DOWN
+	var plane_normal: Vector3 = (q_inc * q_lan) * local_plane_normal
+	if plane_normal.length_squared() <= 0.000001:
+		plane_normal = local_plane_normal
+	else:
+		plane_normal = plane_normal.normalized()
+
+	var q_arg := Quaternion(plane_normal, argument_of_periapsis_radians)
+	return Basis(q_arg * q_inc * q_lan)
+
+func get_orbit_plane_normal_from_elements(orbit: Dictionary) -> Vector3:
+	if orbit.is_empty():
+		return Vector3.ZERO
+	var orbit_basis: Basis = build_orbit_basis_from_elements(
+		float(orbit.get("ascending_node_radians", 0.0)),
+		float(orbit.get("inclination_radians", 0.0)),
+		float(orbit.get("argument_of_periapsis_radians", 0.0))
+	)
+	var plane_normal: Vector3 = orbit_basis * Vector3.DOWN
+	if plane_normal.length_squared() <= 0.000001:
+		return Vector3.ZERO
+	return plane_normal.normalized()
+
 func _get_orbit_state_at_time(parent_body_name: StringName, orbit: Dictionary, query_time: float) -> Dictionary:
 	var parent_state: Dictionary = get_body_state_at_time(parent_body_name, query_time)
 	var parent_pos: Vector3 = parent_state.get("pos", Vector3.ZERO)
@@ -426,10 +484,13 @@ func _get_orbit_state_at_time(parent_body_name: StringName, orbit: Dictionary, q
 		sqrt_term * cos_e * speed_scale
 	)
 
-	var orbit_basis := Basis.IDENTITY
-	orbit_basis = orbit_basis.rotated(Vector3.UP, ascending_node_radians)
-	orbit_basis = orbit_basis.rotated(Vector3.RIGHT, inclination_radians)
-	orbit_basis = orbit_basis.rotated(Vector3.UP, argument_of_periapsis_radians)
+	# Build orbital orientation with the same r x v plane-normal convention that
+	# the runtime EQUATOR instrument uses for instantaneous motion planes.
+	var orbit_basis: Basis = build_orbit_basis_from_elements(
+		ascending_node_radians,
+		inclination_radians,
+		argument_of_periapsis_radians
+	)
 
 	var local_offset: Vector3 = orbit_basis * perifocal_position
 	var tangent: Vector3 = orbit_basis * perifocal_velocity
@@ -624,6 +685,41 @@ func _get_session_ship_start_state() -> Dictionary:
 	var ship_start: Dictionary = scenario.get("ship_start", {})
 	if ship_start.is_empty():
 		return default_start
+
+	var coplanar_with_body_name: StringName = ship_start.get("coplanar_with_body_name", &"")
+	if coplanar_with_body_name != &"" and has_body(coplanar_with_body_name):
+		var parent_body_name: StringName = get_body_parent(coplanar_with_body_name)
+		if parent_body_name != &"":
+			var target_body_pos: Vector3 = get_body_position(coplanar_with_body_name)
+			var target_body_vel: Vector3 = get_body_velocity(coplanar_with_body_name)
+			var parent_body_pos: Vector3 = get_body_position(parent_body_name)
+			var parent_body_vel: Vector3 = get_body_velocity(parent_body_name)
+			var plane_normal: Vector3 = get_orbital_plane_normal_from_state(
+				target_body_pos,
+				target_body_vel,
+				parent_body_pos,
+				parent_body_vel
+			)
+			if plane_normal.length_squared() > 0.0001:
+				var radial_dir: Vector3 = (target_body_pos - parent_body_pos).normalized()
+				var orbit_radius: float = maxf(
+					float(ship_start.get("orbit_radius", default_start["position_offset"].length())),
+					1.0
+				)
+				var orbit_speed: float = maxf(
+					float(ship_start.get("speed", default_start["velocity"].length())),
+					0.001
+				)
+				var retrograde: bool = bool(ship_start.get("coplanar_retrograde", false))
+				var tangential_dir: Vector3 = plane_normal.cross(radial_dir).normalized()
+				if retrograde:
+					tangential_dir = -tangential_dir
+				var world_position: Vector3 = parent_body_pos + radial_dir * orbit_radius
+				var world_velocity: Vector3 = parent_body_vel + tangential_dir * orbit_speed
+				return {
+					"position_offset": world_position - planet_pos,
+					"velocity": world_velocity,
+				}
 
 	var position_offset: Vector3 = ship_start.get("position_offset", default_start["position_offset"])
 	var velocity: Vector3 = ship_start.get("velocity", default_start["velocity"])

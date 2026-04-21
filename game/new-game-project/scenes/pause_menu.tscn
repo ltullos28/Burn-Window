@@ -336,6 +336,20 @@ theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
 text = "On"
 horizontal_alignment = 0
 
+[node name="LockToVectorLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Lock To Vector"
+
+[node name="LockToVectorToggle" type="CheckButton" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid"]
+layout_mode = 2
+
+[node name="LockToVectorValueLabel" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent/GameplayGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
+text = "Off"
+horizontal_alignment = 0
+
 [node name="AudioHeader" type="Label" parent="UIRoot/MenuShell/MenuMargin/MenuVBox/MenuColumns/DetailsColumn/SettingsPanel/SettingsScroll/SettingsScrollContent"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9490196, 0.9019608, 0.77254903, 1)
